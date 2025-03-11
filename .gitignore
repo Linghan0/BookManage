@@ -6,6 +6,23 @@ __pycache__/
 # C extensions
 *.so
 
+# Node
+node_modules/
+dist/
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# 数据库
+*.db
+*.sqlite3
+
+# 日志文件
+*.log
+
 # Distribution / packaging
 .Python
 build/
