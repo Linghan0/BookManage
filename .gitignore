@@ -15,6 +15,7 @@ npm-debug.log*
 .vscode/
 .idea/
 *.iml
+.text
 
 # 数据库
 *.db
