@@ -2,11 +2,16 @@
 # nlc_isbn.py
 
 import re
+import json
 import urllib.request
 import logging
 from bs4 import BeautifulSoup
 
-from headers import get_opacnlc_headers
+from .headers import get_opacnlc_headers
+
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 BASE_URL = "http://opac.nlc.cn/F"
@@ -60,7 +65,7 @@ def isbn2meta(isbn, update_status):
         response = urllib.request.urlopen(urllib.request.Request(search_url, headers=get_opacnlc_headers()), timeout=10)
         response_text = response.read().decode('utf-8')
         soup = BeautifulSoup(response_text, "html.parser")
-        return parse_metadata(soup, isbn, update_status)
+        return parse_metadata(soup, clean_isbn, update_status)
     except Exception as e:
         update_status(f"获取元数据时出错: {e}")
         return None
@@ -74,7 +79,7 @@ def clean_string(text):
     text = text.replace('\xa0', ' ').strip()
     return text
 
-def parse_metadata(soup, isbn, update_status):
+def parse_metadata(soup, clean_isbn, update_status):
     data = {}
     prev_td1 = ''
     prev_td2 = ''
@@ -136,7 +141,7 @@ def parse_metadata(soup, isbn, update_status):
             "publisher": publisher,
             "pubdate": pubdate,
             "authors": authors,
-            "isbn": isbn,
+            "isbn": clean_isbn,
             "pages": clean_string(data.get("载体形态项", "")),
         }
         return metadata
@@ -147,9 +152,7 @@ def parse_metadata(soup, isbn, update_status):
 
 
 
-# 配置日志
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
 
 # ISBN处理函数
 def canonical(isbnlike):
@@ -215,8 +218,7 @@ def get_book_info(isbn):
 
 ## 测试
 if __name__ == "__main__":
-    import json
-    isbn = "9787519430238"
-#    isbn = "978-7-5126-6693-1"
+#   isbn = "9787519430238"
+    isbn = "978-7-5126-6693-1"
     book_info = get_book_info(isbn)
     print(json.dumps(book_info, ensure_ascii=False, indent=2))
