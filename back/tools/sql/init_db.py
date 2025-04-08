@@ -86,16 +86,30 @@ def init_database(db_path=None):
         admin_password = ADMIN_PASSWORD  # 默认密码，首次登录后应修改
         password_hash = bcrypt.hashpw(admin_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         
-        # 检查是否已存在管理员账户
-        cursor.execute("SELECT COUNT(*) FROM User WHERE role = 'admin'")
-        admin_count = cursor.fetchone()[0]
+        # 确保只有一个管理员账户
+        cursor.execute("SELECT * FROM User WHERE role = 'admin'")
+        admins = cursor.fetchall()
         
-        if admin_count == 0:
+        # 如果存在多个管理员，只保留第一个
+        if len(admins) > 1:
+            first_admin = min(admins, key=lambda x: x[0])  # 按user_id排序，保留最早的
+            for admin in admins:
+                if admin[0] != first_admin[0]:
+                    cursor.execute('''
+                    UPDATE User SET role = 'user' WHERE user_id = ?
+                    ''', (admin[0],))
+            print(f"检测到多个管理员账户，已保留最早创建的管理员(ID:{first_admin[0]})")
+            admins = [first_admin]
+        
+        # 如果没有管理员，创建默认管理员
+        if not admins:
             cursor.execute('''
             INSERT INTO User (username, password, role)
             VALUES (?, ?, ?)
             ''', (admin_username, password_hash, 'admin'))
             print("已创建默认管理员账户")
+        else:
+            print(f"系统已有管理员账户(ID:{admins[0][0]})")
 
         # Create Book table/创建书籍表
         # TEXT: String type/字符串类型

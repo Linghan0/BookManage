@@ -3,11 +3,24 @@
 from back.db import get_session
 from back.models import Book, UserBook
 
-def get_all_books():
-    """获取所有书籍"""
+def get_all_books(page=None, per_page=None):
+    """获取所有书籍(支持分页)
+    Args:
+        page: 页码(从1开始)
+        per_page: 每页数量
+    Returns:
+        list: 书籍列表，每条数据保持原有结构
+    """
     session = get_session()
     try:
-        books = session.query(Book).all()
+        query = session.query(Book)
+        
+        # 应用分页
+        if page is not None and per_page is not None:
+            offset = (page - 1) * per_page
+            query = query.offset(offset).limit(per_page)
+            
+        books = query.all()
         return [{
             'isbn': book.isbn,
             'title': book.title,
@@ -23,6 +36,50 @@ def get_all_books():
             'cover_url': book.cover_url or '',
             'description': book.description or ''
         } for book in books]
+    finally:
+        session.close()
+
+def get_books_count():
+    """获取书籍总数"""
+    session = get_session()
+    try:
+        return session.query(Book).count()
+    finally:
+        session.close()
+
+def get_user_books(user_id, page=None, per_page=None):
+    """获取用户书架中的书籍(支持分页)
+    Args:
+        user_id: 用户ID
+        page: 页码(从1开始)
+        per_page: 每页数量
+    Returns:
+        list: 用户书籍列表，每条数据保持原有结构
+    """
+    session = get_session()
+    try:
+        query = session.query(UserBook).filter_by(user_id=user_id)
+        
+        # 应用分页
+        if page is not None and per_page is not None:
+            offset = (page - 1) * per_page
+            query = query.offset(offset).limit(per_page)
+            
+        user_books = query.all()
+        return [{
+            'isbn': ub.book.isbn,
+            'title': ub.book.title,
+            'author': ub.book.author,
+            'nums': ub.nums
+        } for ub in user_books]
+    finally:
+        session.close()
+
+def get_user_books_count(user_id):
+    """获取用户书籍总数"""
+    session = get_session()
+    try:
+        return session.query(UserBook).filter_by(user_id=user_id).count()
     finally:
         session.close()
 

@@ -29,3 +29,12 @@ cd test
 npm install
 npm run dev
 ```
+
+## 测试启动
+```bash
+cd 项目根目录/
+python back/app.py
+
+cd test/
+npm run serve
+```
