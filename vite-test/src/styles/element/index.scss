@@ -1,0 +1,17 @@
+@forward "element-plus/theme-chalk/src/common/var.scss" with (
+  $colors: (
+    "primary": (
+      "base": #42b983,
+    ),
+  ),
+  $button: (
+    "border-radius": 4px,
+  ),
+  $menu: (
+    "active-color": #ffffff,
+    "hover-color": rgba(255,255,255,0.2),
+    "bg-color": #42b983,
+    "hover-bg-color": rgba(255,255,255,0.2),
+    "active-bg-color": rgba(255,255,255,0.1),
+  )
+);
