@@ -1,13 +1,20 @@
-<template>
-  <div>
-    <h1>Book List</h1>
-  </div>
-</template>
-
 <script setup lang="ts">
-// Books page logic here
+import SearchView from './SearchView.vue';
+import BooklistView from './BooklistView.vue';
+
 </script>
 
-<style scoped>
-/* Books page styles here */
-</style>
+<template>
+  <div class="common-layout">
+    <el-container>
+      <el-header>
+        <!-- Searh Books -->
+        <SearchView />
+      </el-header>
+      <el-main>
+        <!-- Book list -->
+        <BooklistView />
+      </el-main>
+    </el-container>
+  </div>
+</template>
