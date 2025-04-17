@@ -3,8 +3,8 @@
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from ..models import Base
-from ..config import DB_PATH
+from models import Base
+from config import DB_PATH
 
 def get_engine():
     """获取数据库引擎"""

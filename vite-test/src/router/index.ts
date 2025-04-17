@@ -27,9 +27,24 @@ const router = createRouter({
       component: LoginView
     },
     {
-      path: '/admin',
-      name: 'admin',
-      component: () => import('@/views/admin/index.vue')
+      path: '/admin/books',
+      name: 'admin-books',
+      component: () => import('@/views/admin/BooksView.vue')
+    },
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: () => import('@/views/admin/UsersView.vue')
+    },
+    {
+      path: '/admin/register',
+      name: 'admin-register',
+      component: () => import('@/views/admin/RegisterView.vue')
+    },
+    {
+      path: '/admin/users/edit/:id',
+      name: 'admin-edit-user',
+      component: () => import('@/views/admin/EditUserView.vue')
     }
   ]
 })

@@ -6,15 +6,15 @@ import jwt
 from datetime import datetime, timedelta
 from functools import wraps
 
-from back.models import User
+from models import User
 # 添加项目根目录到Python路径
 sys.path.append(str(Path(__file__).parent.parent))
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from back.config import DB_PATH, SECRET_KEY
-from back.tools.sql.init_db import init_database
-from back.db.book_tools import ( 
+from config import DB_PATH, SECRET_KEY
+from db.init_db import init_database
+from db.book_tools import (
     get_all_books,
     create_book,
     get_book_by_isbn,
@@ -22,7 +22,15 @@ from back.db.book_tools import (
     update_book,
     delete_book
 )
-from back.db.user_tools import authenticate_user, get_db_session, get_user_by_id
+from db.user_tools import authenticate_user, get_db_session, get_user_by_id
+
+from db.book_tools import (
+    add_book_to_user, 
+    get_user_books, 
+    remove_book_from_user,
+    get_user_books_count
+)
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
@@ -196,12 +204,7 @@ def manage_user(current_user, user_id):
     finally:
         session.close()
 
-from back.db.book_tools import (
-    add_book_to_user, 
-    get_user_books, 
-    remove_book_from_user,
-    get_user_books_count
-)
+
 
 @app.route('/api/bookshelf', methods=['GET'])
 @token_required
