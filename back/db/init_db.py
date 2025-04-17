@@ -5,7 +5,7 @@ import bcrypt
 # 添加项目根目录到Python路径
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from back.config import DB_PATH, ADMIN_USERNAME, ADMIN_PASSWORD
+from config import DB_PATH, ADMIN_USERNAME, ADMIN_PASSWORD
 
 def init_database(db_path=None):
     """初始化数据库"""

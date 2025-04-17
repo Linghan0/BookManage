@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from back.db import get_session
-from back.models import Book, UserBook
+from db import get_session
+from models import Book, UserBook
 
 def get_all_books(page=None, per_page=None):
     """获取所有书籍(支持分页)
@@ -166,7 +166,7 @@ def delete_book(isbn):
 
 def fetch_book_auto(isbn):
     """从国家图书馆API获取书籍信息"""
-    from back.tools.bookdata import get_book_info, get_book_data
+    from tools.bookdata import get_book_info, get_book_data
     
     try:
         # 获取原始书籍数据
