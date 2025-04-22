@@ -33,7 +33,9 @@ npm run dev
 ## 测试启动
 ```bash
 cd 项目根目录/
-python back/app.py
+.venv\Scripts\Activate.ps1
+cd .\back\
+python app.py
 
 cd test/
 npm run serve

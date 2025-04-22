@@ -4,7 +4,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, CheckConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
-import bcrypt 
+import hashlib
 
 Base = declarative_base()
 
@@ -14,7 +14,7 @@ class User(Base):
     
     user_id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(20), nullable=False, unique=True)
-    password = Column(String(60), nullable=False)  # 存储bcrypt加密后的密码
+    password = Column(String(64), nullable=False)  # 存储sha256加密后的密码
     role = Column(String(10), nullable=False, default='user')  # 'admin' or 'user'
     
     # 与Book的关系 (多对多)
@@ -22,17 +22,19 @@ class User(Base):
     
     __table_args__ = (
         CheckConstraint('length(username) BETWEEN 4 AND 20', name='check_username_length'),
-        CheckConstraint('length(password) = 60', name='check_password_length'),  # bcrypt哈希固定60字符
+        CheckConstraint('length(password) = 64', name='check_password_length'),  # sha256哈希固定64字符
         CheckConstraint("role IN ('admin', 'user')", name='check_role_values'),
     )
 
-    def set_password(self, password):
-        """设置密码，自动进行bcrypt加密"""
-        self.password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    def set_password(self, hashed_password):
+        """设置密码，接受前端sha256哈希值"""
+        if len(hashed_password) != 64:
+            raise ValueError("密码必须是64字符的sha256哈希值")
+        self.password = hashed_password
 
-    def check_password(self, password):
-        """验证密码"""
-        return bcrypt.checkpw(password.encode('utf-8'), self.password.encode('utf-8'))
+    def check_password(self, hashed_password):
+        """验证密码，直接比较sha256哈希值"""
+        return self.password == hashed_password
 
     @staticmethod
     def ensure_single_admin(session):

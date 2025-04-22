@@ -2,7 +2,13 @@
 
 from db import get_session
 from models import Book, UserBook
+from tools.bookdata import get_book_info, get_book_data
 
+
+## 查询
+
+
+# 获取所有书籍(支持分页)
 def get_all_books(page=None, per_page=None):
     """获取所有书籍(支持分页)
     Args:
@@ -39,6 +45,34 @@ def get_all_books(page=None, per_page=None):
     finally:
         session.close()
 
+# 根据ISBN获取书籍
+def get_book_by_isbn(isbn):
+    """根据ISBN获取书籍详情"""
+    session = get_session()
+    try:
+        book = session.query(Book).filter_by(isbn=isbn).first()
+        if not book:
+            return None
+            
+        return {
+            'isbn': book.isbn,
+            'title': book.title,
+            'author': book.author,
+            'translator': book.translator or '',
+            'genre': book.genre or '',
+            'country': book.country or '',
+            'era': book.era or '',
+            'opac_nlc_class': book.opac_nlc_class or '',
+            'publisher': book.publisher,
+            'publish_year': book.publish_year,
+            'page': book.page,
+            'cover_url': book.cover_url or '',
+            'description': book.description or ''
+        }
+    finally:
+        session.close()
+
+# 获取书籍总数
 def get_books_count():
     """获取书籍总数"""
     session = get_session()
@@ -47,6 +81,7 @@ def get_books_count():
     finally:
         session.close()
 
+# 获取用户书架中的书籍
 def get_user_books(user_id, page=None, per_page=None):
     """获取用户书架中的书籍(支持分页)
     Args:
@@ -75,6 +110,7 @@ def get_user_books(user_id, page=None, per_page=None):
     finally:
         session.close()
 
+# 获取用户书籍总数
 def get_user_books_count(user_id):
     """获取用户书籍总数"""
     session = get_session()
@@ -83,6 +119,33 @@ def get_user_books_count(user_id):
     finally:
         session.close()
 
+# 从国家图书馆API获取书籍信息
+def fetch_book_auto(isbn):
+    """从国家图书馆API获取书籍信息"""
+
+    
+    try:
+        # 获取原始书籍数据
+        raw_data = get_book_info(isbn)
+        if not raw_data or "error" in raw_data:
+            return None
+            
+        # 转换为数据库格式
+        book_data = get_book_data(raw_data)
+        if not book_data:
+            return None
+            
+        return book_data
+    except Exception as e:
+        import logging
+        logging.error(f"获取书籍信息失败: {e}")
+        return None
+
+
+# 增加
+
+
+# 创建书籍
 def create_book(data):
     """创建新书"""
     session = get_session()
@@ -104,36 +167,89 @@ def create_book(data):
         )
         session.add(book)
         session.commit()
-        return {'message': 'Book created'}
-    finally:
-        session.close()
-
-def get_book_by_isbn(isbn):
-    """根据ISBN获取书籍详情"""
-    session = get_session()
-    try:
-        book = session.query(Book).filter_by(isbn=isbn).first()
-        if not book:
-            return None
-            
         return {
-            'isbn': book.isbn,
-            'title': book.title,
-            'author': book.author,
-            'translator': book.translator or '',
-            'genre': book.genre or '',
-            'country': book.country or '',
-            'era': book.era or '',
-            'opac_nlc_class': book.opac_nlc_class or '',
-            'publisher': book.publisher,
-            'publish_year': book.publish_year,
-            'page': book.page,
-            'cover_url': book.cover_url or '',
-            'description': book.description or ''
+            'success': True,
+            'message': 'Book created',
+            'book': {
+                'isbn': book.isbn,
+                'title': book.title,
+                'author': book.author,
+                'publisher': book.publisher
+            }
         }
     finally:
         session.close()
 
+# 根据ISBN创建新书
+def create_book_isbn(isbn):
+    """根据ISBN创建新书
+    Args:
+        isbn: 书籍ISBN号
+    Returns:
+        dict: {
+            'success': bool,  # 操作是否成功
+            'message': str,   # 结果消息
+            'book': dict      # 创建的书籍信息(成功时)
+        }
+    """
+    session = get_session()
+    try:
+        # 检查书籍是否已存在
+        existing_book = session.query(Book).filter_by(isbn=isbn).first()
+        if existing_book:
+            return {
+                'success': False,
+                'message': f'书籍已存在: {existing_book.title}',
+                'book': None
+            }
+
+        # 从API获取书籍信息
+        book_data = fetch_book_auto(isbn)
+        if not book_data:
+            return {
+                'success': False,
+                'message': '无法从API获取书籍信息',
+                'book': None
+            }
+
+        # 使用create_book创建书籍
+        result = create_book(book_data)
+        if not result.get('success', False):
+            return {
+                'success': False,
+                'message': result.get('message', '创建书籍失败'),
+                'book': None
+            }
+
+        # 获取创建的书籍信息
+        new_book = session.query(Book).filter_by(isbn=isbn).first()
+        return {
+            'success': True,
+            'message': '书籍创建成功',
+            'book': {
+                'isbn': new_book.isbn,
+                'title': new_book.title,
+                'author': new_book.author,
+                'publisher': new_book.publisher
+            }
+        }
+    except Exception as e:
+        session.rollback()
+        import logging
+        logging.error(f"创建书籍时发生错误: {str(e)}")
+        return {
+            'success': False,
+            'message': f'创建书籍时发生错误: {str(e)}',
+            'book': None
+        }
+    finally:
+        session.close()
+
+
+## 修改
+
+
+# 更新书籍信息
 def update_book(isbn, data):
     """更新书籍信息"""
     session = get_session()
@@ -150,6 +266,11 @@ def update_book(isbn, data):
     finally:
         session.close()
 
+
+## 删除
+
+
+# 删除书籍
 def delete_book(isbn):
     """删除书籍"""
     session = get_session()
@@ -164,27 +285,11 @@ def delete_book(isbn):
     finally:
         session.close()
 
-def fetch_book_auto(isbn):
-    """从国家图书馆API获取书籍信息"""
-    from tools.bookdata import get_book_info, get_book_data
-    
-    try:
-        # 获取原始书籍数据
-        raw_data = get_book_info(isbn)
-        if not raw_data or "error" in raw_data:
-            return None
-            
-        # 转换为数据库格式
-        book_data = get_book_data(raw_data)
-        if not book_data:
-            return None
-            
-        return book_data
-    except Exception as e:
-        import logging
-        logging.error(f"获取书籍信息失败: {e}")
-        return None
 
+# 用户书籍
+
+
+# 增加书籍到用户书架
 def add_book_to_user(isbn, user_id):
     """普通用户添加书籍到个人书库"""
     session = get_session()
@@ -214,5 +319,32 @@ def add_book_to_user(isbn, user_id):
             
         session.commit()
         return {'message': 'Book added to user'}
+    finally:
+        session.close()
+
+# 从用户书架中移除书籍
+def remove_book_from_user(isbn, user_id):
+    """从用户书架中移除书籍
+    Args:
+        isbn: 书籍ISBN
+        user_id: 用户ID
+    Returns:
+        dict: 操作结果消息
+    Raises:
+        ValueError: 如果书籍不在用户书架中
+    """
+    session = get_session()
+    try:
+        user_book = session.query(UserBook).filter_by(
+            user_id=user_id,
+            book_isbn=isbn
+        ).first()
+        
+        if not user_book:
+            raise ValueError('书籍不在用户书架中')
+            
+        session.delete(user_book)
+        session.commit()
+        return {'message': 'Book removed from user'}
     finally:
         session.close()

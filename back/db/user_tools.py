@@ -38,9 +38,9 @@ def register_user(username, hashed_password, role='user'):
         if get_user_by_username(username):
             raise ValueError('用户名已存在')
             
-        # 验证密码格式(60字符的bcrypt哈希)
-        if len(hashed_password) != 60 or not hashed_password.startswith('$2b$'):
-            raise ValueError('密码格式不正确，必须是bcrypt加密后的哈希值')
+        # 验证密码格式(64字符的sha256哈希)
+        if len(hashed_password) != 64:
+            raise ValueError('密码格式不正确，必须是64字符的sha256哈希值')
             
         # 创建新用户
         user = User(username=username, password=hashed_password, role=role)

@@ -135,7 +135,7 @@ def parse_metadata(soup, clean_isbn, update_status):
             authors = [clean_string(author) for author in re.split(r'[;&]', author_text) if clean_string(author)]
 
         metadata = {
-            "title": clean_string(data.get("题名与责任", isbn)),
+            "title": clean_string(data.get("题名与责任", clean_isbn)),
             "tags": [tag for tag in tags if tag],
             "comments": clean_string(data.get("内容提要", "")),
             "publisher": publisher,

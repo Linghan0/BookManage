@@ -22,7 +22,8 @@ from db.book_tools import (
     update_book,
     delete_book
 )
-from db.user_tools import authenticate_user, get_db_session, get_user_by_id
+from db import DBSession
+from db.user_tools import authenticate_user, get_user_by_id
 
 from db.book_tools import (
     add_book_to_user, 
@@ -162,7 +163,7 @@ def create_user(current_user):
         return jsonify({'message': '用户名和密码不能为空'}), 400
     
     # 创建用户逻辑
-    session = get_db_session()
+    session = DBSession()
     try:
         if session.query(User).filter_by(username=data['username']).first():
             return jsonify({'message': '用户名已存在'}), 400
@@ -182,7 +183,7 @@ def manage_user(current_user, user_id):
     if current_user.role != 'admin':
         return jsonify({'message': '权限不足'}), 403
     
-    session = get_db_session()
+    session = DBSession()
     try:
         user = session.query(User).get(user_id)
         if not user:
@@ -237,7 +238,7 @@ def manage_bookshelf(current_user, isbn):
             return jsonify({'error': str(e)}), 400
             
     elif request.method == 'DELETE':
-        session = get_db_session()
+        session = DBSession()
         try:
             result = remove_book_from_user(isbn, current_user.user_id)
             if not result:

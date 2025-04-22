@@ -1,11 +1,13 @@
 import sqlite3
 import sys
 from pathlib import Path
-import bcrypt 
+import hashlib
 # 添加项目根目录到Python路径
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from config import DB_PATH, ADMIN_USERNAME, ADMIN_PASSWORD
+from db.book_tools import create_book_isbn
+
 
 def init_database(db_path=None):
     """初始化数据库"""
@@ -31,15 +33,7 @@ def init_database(db_path=None):
         db_dir.mkdir(parents=True, exist_ok=True)
         print(f"数据库目录已创建: {db_dir}")
 
-        # 如果数据库已存在，只需验证连接
-        if db_exists:
-            print("数据库已存在，验证连接(Flask debug模式可能会显示多次)...")
-            conn = sqlite3.connect(db_path)
-            conn.execute("PRAGMA foreign_keys = ON")
-            conn.close()
-            print("数据库验证成功(实际只执行一次)")
-            return True
-        
+
         print("正在连接数据库...")
         # Connect to SQLite database with UTF-8 encoding/使用UTF-8编码连接SQLite数据库
         # SQLite will create the file if it doesn't exist/如果文件不存在会自动创建
@@ -75,41 +69,11 @@ def init_database(db_path=None):
             username TEXT NOT NULL UNIQUE              -- 用户名，不能为空且唯一
                 CHECK(length(username) BETWEEN 4 AND 20),  -- 用户名长度4-20字符
             password TEXT NOT NULL                     -- 密码，存储加密后的值
-                CHECK(length(password) = 60),          -- bcrypt哈希固定60字符
+                CHECK(length(password) = 64),          -- sha256哈希固定64字符
             role TEXT NOT NULL DEFAULT 'user'          -- 角色，默认为user
                 CHECK(role IN ('admin', 'user'))       -- 角色只能是admin或user
         )
         ''')
-
-        # 创建默认管理员账户
-        admin_username = ADMIN_USERNAME
-        admin_password = ADMIN_PASSWORD  # 默认密码，首次登录后应修改
-        password_hash = bcrypt.hashpw(admin_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        
-        # 确保只有一个管理员账户
-        cursor.execute("SELECT * FROM User WHERE role = 'admin'")
-        admins = cursor.fetchall()
-        
-        # 如果存在多个管理员，只保留第一个
-        if len(admins) > 1:
-            first_admin = min(admins, key=lambda x: x[0])  # 按user_id排序，保留最早的
-            for admin in admins:
-                if admin[0] != first_admin[0]:
-                    cursor.execute('''
-                    UPDATE User SET role = 'user' WHERE user_id = ?
-                    ''', (admin[0],))
-            print(f"检测到多个管理员账户，已保留最早创建的管理员(ID:{first_admin[0]})")
-            admins = [first_admin]
-        
-        # 如果没有管理员，创建默认管理员
-        if not admins:
-            cursor.execute('''
-            INSERT INTO User (username, password, role)
-            VALUES (?, ?, ?)
-            ''', (admin_username, password_hash, 'admin'))
-            print("已创建默认管理员账户")
-        else:
-            print(f"系统已有管理员账户(ID:{admins[0][0]})")
 
         # Create Book table/创建书籍表
         # TEXT: String type/字符串类型
@@ -162,6 +126,59 @@ def init_database(db_path=None):
         )
         ''')
 
+        # 创建默认管理员账户
+        admin_username = ADMIN_USERNAME
+        admin_password = ADMIN_PASSWORD  # 默认密码，首次登录后应修改
+        password_hash = hashlib.sha256(admin_password.encode('utf-8')).hexdigest()
+        
+        # 创建默认管理员账户
+        try:
+            cursor.execute("SELECT * FROM User WHERE role = 'admin'")
+            admins = cursor.fetchall()
+            if not admins:
+                cursor.execute('''
+                INSERT INTO User (username, password, role)
+                VALUES (?, ?, ?)
+                ''', (admin_username, password_hash, 'admin'))
+                print(f"已创建默认管理员账户: {admin_username}")
+            else:
+                print(f"管理员账户已存在: {admins[0][1]}")
+        except sqlite3.OperationalError as e:
+            if "no such table" in str(e):
+                # 如果User表不存在，创建表并添加管理员
+                print("User表不存在，将创建表并添加管理员账户")
+                # 重新执行表创建语句
+                cursor.execute('''
+                CREATE TABLE IF NOT EXISTS User (
+                    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL UNIQUE
+                        CHECK(length(username) BETWEEN 4 AND 20),
+                    password TEXT NOT NULL
+                        CHECK(length(password) = 64),
+                    role TEXT NOT NULL DEFAULT 'user'
+                        CHECK(role IN ('admin', 'user'))
+                )
+                ''')
+                cursor.execute('''
+                INSERT INTO User (username, password, role)
+                VALUES (?, ?, ?)
+                ''', (admin_username, password_hash, 'admin'))
+                print(f"已创建User表并添加管理员账户: {admin_username}")
+
+        # 创建初始书籍
+
+        
+        test_isbn = "978-7-5658-0227-0"  # 测试书籍ISBN
+        print(f"正在创建初始书籍，ISBN: {test_isbn}")
+        
+        result = create_book_isbn(test_isbn)
+        if result['success']:
+            print(f"初始书籍创建成功: {result['book']['title']}")
+        else:
+            print(f"初始书籍创建失败: {result['message']}")
+            if "书籍已存在" in result['message']:
+                print("书籍已存在，跳过创建")
+        
         conn.commit()
         print(f"Database initialized successfully at {db_path}")
         print(f"数据库已成功初始化，路径: {db_path}")
