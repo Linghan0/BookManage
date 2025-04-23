@@ -1,6 +1,0 @@
-# Python dependencies
-Flask==2.3.2
-Flask-CORS==3.0.10
-PyJWT==2.10.1
-bcrypt==4.3.0
-SQLAlchemy==2.0.19

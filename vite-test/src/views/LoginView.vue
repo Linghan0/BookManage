@@ -6,14 +6,15 @@
         <el-form-item label="Username" prop="username">
           <el-input v-model="ruleForm.username" type="text" autocomplete="username" />
         </el-form-item>
-        <el-form-item label="Password" prop="pass">
-          <el-input v-model="ruleForm.pass" type="password" autocomplete="current-password" />
-        </el-form-item>
-        <el-form-item label="Confirm" prop="checkPass">
-          <el-input v-model="ruleForm.checkPass" type="password" autocomplete="current-password" />
+        <el-form-item label="Password" prop="password">
+          <el-input v-model="ruleForm.password" type="password" autocomplete="current-password" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="submitForm(ruleFormRef)">
+          <el-button 
+            type="primary" 
+            @click="submitForm(ruleFormRef)"
+            :loading="loading"
+          >
             登录
           </el-button>
           <el-button @click="resetForm(ruleFormRef)">重置</el-button>
@@ -51,27 +52,29 @@
 <script lang="ts" setup>
 import { reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 
+const router = useRouter()
+const userStore = useUserStore()
 const ruleFormRef = ref<FormInstance>()
+const loading = ref(false)
 
-
-
-const validatePass = (rule: any, value: any, callback: any) => {
-  if (value === '') {
-    callback(new Error('Please input the password'))
+const validateUsername = (rule: any, value: any, callback: any) => {
+  if (!value) {
+    callback(new Error('请输入用户名'))
+  } else if (value.length < 3) {
+    callback(new Error('用户名至少3个字符'))
   } else {
-    if (ruleForm.checkPass !== '') {
-      if (!ruleFormRef.value) return
-      ruleFormRef.value.validateField('checkPass')
-    }
     callback()
   }
 }
-const validatePass2 = (rule: any, value: any, callback: any) => {
-  if (value === '') {
-    callback(new Error('Please input the password again'))
-  } else if (value !== ruleForm.pass) {
-    callback(new Error("Two inputs don't match!"))
+
+const validatePassword = (rule: any, value: any, callback: any) => {
+  if (!value) {
+    callback(new Error('请输入密码'))
+  } else if (value.length < 6) {
+    callback(new Error('密码至少6个字符'))
   } else {
     callback()
   }
@@ -79,25 +82,28 @@ const validatePass2 = (rule: any, value: any, callback: any) => {
 
 const ruleForm = reactive({
   username: '',
-  pass: '',
-  checkPass: ''
+  password: ''
 })
 
 const rules = reactive<FormRules<typeof ruleForm>>({
-  username: [{ required: true, message: 'Please input username', trigger: 'blur' }],
-  pass: [{ validator: validatePass, trigger: 'blur' }],
-  checkPass: [{ validator: validatePass2, trigger: 'blur' }],
+  username: [{ validator: validateUsername, trigger: 'blur' }],
+  password: [{ validator: validatePassword, trigger: 'blur' }]
 })
 
-const submitForm = (formEl: FormInstance | undefined) => {
+const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
-  formEl.validate((valid) => {
+  try {
+    loading.value = true
+    const valid = await formEl.validate()
     if (valid) {
-      console.log('submit!')
-    } else {
-      console.log('error submit!')
+      const success = await userStore.login(ruleForm.username, ruleForm.password)
+      if (success) {
+        await router.push('/')
+      }
     }
-  })
+  } finally {
+    loading.value = false
+  }
 }
 
 const resetForm = (formEl: FormInstance | undefined) => {

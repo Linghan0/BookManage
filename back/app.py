@@ -5,14 +5,14 @@ from pathlib import Path
 import jwt 
 from datetime import datetime, timedelta
 from functools import wraps
-
-from models import User
-# 添加项目根目录到Python路径
-sys.path.append(str(Path(__file__).parent.parent))
-
+import configparser
+from pathlib import Path
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+
+
 from config import DB_PATH, SECRET_KEY
+from models import User
 from db.init_db import init_database
 from db.book_tools import (
     get_all_books,
@@ -20,28 +20,59 @@ from db.book_tools import (
     get_book_by_isbn,
     get_books_count,
     update_book,
-    delete_book
-)
-from db import DBSession
-from db.user_tools import authenticate_user, get_user_by_id
-
-from db.book_tools import (
+    delete_book,
     add_book_to_user, 
     get_user_books, 
     remove_book_from_user,
     get_user_books_count
 )
+from db import DBSession
+from db.user_tools import authenticate_user, get_user_by_id
+
+
+# 添加项目根目录到Python路径
+sys.path.append(str(Path(__file__).parent.parent))
 
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
 
-# 初始化数据库
-if not init_database(str(DB_PATH)):
-    print("数据库初始化失败!")
-    exit(1)
 
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5000", "http://localhost:8082"]}})  # 允许跨域
+
+# 配置文件路径
+config_path = Path(__file__).parent / "config.ini"
+
+# 读取或创建配置文件
+config = configparser.ConfigParser()
+if config_path.exists():
+    config.read(config_path)
+else:
+    config['INIT'] = {'initialized': 'False'}
+
+# 检查是否需要初始化
+if config.getboolean('INIT', 'initialized', fallback=False) == False:
+    print("首次启动，正在初始化数据库...")
+    if not init_database(str(DB_PATH)):
+        print("数据库初始化失败!")
+        exit(1)
+    # 更新初始化状态
+    config['INIT']['initialized'] = 'True'
+    with open(config_path, 'w') as f:
+        config.write(f)
+    print("数据库初始化完成，已更新初始化状态")
+else:
+    print("非首次启动，跳过数据库初始化")
+
+# 全局CORS配置
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
+
 
 def token_required(f):
     """
@@ -60,12 +91,24 @@ def token_required(f):
             return jsonify({'message': 'Token is missing!'}), 401
         
         try:
-            # 解码JWT token，验证签名和过期时间
+            # 检查并移除Bearer前缀
+            if token.startswith('Bearer '):
+                token = token[7:]
+            
+            # 解码并验证token
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-            # 根据token中的user_id获取用户
+            
+            # 检查token过期
+            if 'exp' in data and datetime.utcnow() > datetime.fromtimestamp(data['exp']):
+                return jsonify({'message': 'Token has expired!'}), 401
+            
+            # 验证用户存在
             current_user = get_user_by_id(data['user_id'])
             if not current_user:
                 return jsonify({'message': 'User not found!'}), 401
+            
+            # 调试日志
+            print(f"Token验证成功 - 用户: {current_user.username}")
         except jwt.ExpiredSignatureError:
             return jsonify({'message': 'Token has expired!'}), 401
         except jwt.InvalidTokenError:
@@ -73,6 +116,7 @@ def token_required(f):
         
         return f(current_user, *args, **kwargs)
     return decorated
+
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -101,6 +145,16 @@ def login():
         'user_id': user.user_id,
         'username': user.username,
         'role': user.role
+    })
+
+@app.route('/api/validate', methods=['GET'])
+@token_required
+def validate_token(current_user):
+    """验证token有效性并返回用户信息"""
+    return jsonify({
+        'user_id': current_user.user_id,
+        'username': current_user.username,
+        'role': current_user.role
     })
 
 @app.route('/api/hello')

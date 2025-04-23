@@ -1,8 +1,8 @@
 <script setup lang="ts">
-
 import { ref } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
+import { User } from '@element-plus/icons-vue'
 
 const activeIndex = ref('1')
 const userStore = useUserStore()
@@ -34,12 +34,19 @@ const handleSelect = (key: '1' | '2' | '3' | '4-1' | '4-2' | '5') => {
     <el-menu-item index="2" route="/books">图书列表</el-menu-item>
     <el-menu-item index="3" route="/userbooks">个人书架</el-menu-item>
     <!-- <el-sub-menu index="4" v-if="userStore.isAdmin()"> -->
-    <el-sub-menu index="4" >
+      <el-sub-menu index="4" v-if="userStore.isAdmin()">
         <template #title>admin</template>
         <el-menu-item index="4-1" route="/admin/books">图书管理</el-menu-item>
         <el-menu-item index="4-2" route="/admin/users">用户管理</el-menu-item>
       </el-sub-menu>
-      <el-menu-item index="5" route="/login">登录</el-menu-item>
+      <el-menu-item index="5" v-if="!userStore.isAuthenticated" route="/login">登录</el-menu-item>
+      <el-sub-menu index="6" v-else>
+        <template #title>
+          <el-icon><User /></el-icon>
+          <span style="margin-left: 8px">{{ userStore.user?.username }}</span>
+        </template>
+        <el-menu-item @click="userStore.logout()">退出登录</el-menu-item>
+      </el-sub-menu>
   </el-menu>
 </template>
 

@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import axios from 'axios'
+
+// 明确设置baseURL
+axios.defaults.baseURL = 'http://localhost:5000'
 import { ElMessage } from 'element-plus'
 
 interface User {
@@ -26,11 +29,69 @@ export const useUserStore = defineStore('user', () => {
     total: 0
   })
 
+  const sha256 = async (message: string): Promise<string> => {
+    // 将字符串编码为UTF-8
+    const msgBuffer = new TextEncoder().encode(message)
+    // 使用Web Crypto API计算哈希
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+    // 将ArrayBuffer转换为Hex字符串
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+  }
+
+  const init = async () => {
+    console.log('检查本地token...')
+    const token = localStorage.getItem('token')
+    console.log('获取到的token:', token)
+    
+    if (token) {
+      console.log('设置请求头Authorization...')
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      
+      try {
+        console.log('调用验证接口...')
+        const response = await axios.get('/api/validate')
+        console.log('验证接口响应:', response.data)
+        
+        user.value = {
+          id: response.data.user_id.toString(),
+          username: response.data.username,
+          role: response.data.role
+        }
+        isAuthenticated.value = true
+        console.log('登录状态验证成功')
+      } catch (error) {
+        console.error('验证失败:', error)
+        localStorage.removeItem('token')
+        delete axios.defaults.headers.common['Authorization']
+      }
+    } else {
+      console.log('未找到本地token')
+    }
+  }
+
+  // 初始化store
+  init()
+
   const login = async (username: string, password: string) => {
     try {
-      const response = await axios.post('/api/login', { username, password })
-      user.value = response.data.user
+      console.log('Making request to:', axios.defaults.baseURL + '/api/login')
+      const hashedPassword = await sha256(password)
+      const response = await axios.post('/api/login', { 
+        username, 
+        password: hashedPassword 
+      })
+      console.log('Login response:', response)
+      console.log('User data:', response.data)
+      user.value = {
+        id: response.data.user_id.toString(),
+        username: response.data.username,
+        role: response.data.role
+      }
+      console.log('Store user:', user.value)
       isAuthenticated.value = true
+      localStorage.setItem('token', response.data.token)
+      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`
       ElMessage.success('登录成功')
       return true
     } catch (error) {
@@ -42,6 +103,8 @@ export const useUserStore = defineStore('user', () => {
   const logout = () => {
     user.value = null
     isAuthenticated.value = false
+    localStorage.removeItem('token')
+    delete axios.defaults.headers.common['Authorization']
   }
 
   const isAdmin = () => {
