@@ -27,7 +27,7 @@ from db.book_tools import (
     get_user_books_count
 )
 from db import DBSession
-from db.user_tools import authenticate_user, get_user_by_id
+from db.user_tools import authenticate_user, get_user_by_id, register_user
 
 
 # 添加项目根目录到Python路径
@@ -77,44 +77,103 @@ def after_request(response):
 def token_required(f):
     """
     JWT认证装饰器
-    工作原理：
-    1. 从请求头获取Authorization token
-    2. 使用SECRET_KEY验证token签名
-    3. 解码token获取用户信息
-    4. 检查用户是否存在
-    5. token无效或过期会返回401错误
+    返回更详细的错误信息帮助调试
     """
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({'message': 'Token is missing!'}), 401
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            print("未提供Authorization头")
+            return jsonify({
+                'error': {
+                    'type': 'auth_error',
+                    'message': '缺少Authorization头',
+                    'code': 'missing_auth_header'
+                }
+            }), 401
+        
+        # 统一处理Bearer token
+        if not auth_header.startswith('Bearer '):
+            print("Token格式错误，缺少Bearer前缀")
+            return jsonify({
+                'error': {
+                    'type': 'auth_error',
+                    'message': 'Token格式不正确，应以Bearer开头',
+                    'code': 'invalid_token_format'
+                }
+            }), 401
+            
+        token = auth_header[7:].strip()
         
         try:
-            # 检查并移除Bearer前缀
-            if token.startswith('Bearer '):
-                token = token[7:]
-            
             # 解码并验证token
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
             
             # 检查token过期
             if 'exp' in data and datetime.utcnow() > datetime.fromtimestamp(data['exp']):
-                return jsonify({'message': 'Token has expired!'}), 401
+                print(f"Token已过期: {data}")
+                return jsonify({
+                    'error': {
+                        'type': 'auth_error',
+                        'message': 'Token已过期',
+                        'code': 'token_expired'
+                    }
+                }), 401
             
             # 验证用户存在
-            current_user = get_user_by_id(data['user_id'])
+            user_id = data.get('user_id')
+            if not user_id:
+                print("Token缺少user_id")
+                return jsonify({
+                    'error': {
+                        'type': 'auth_error',
+                        'message': '无效的Token',
+                        'code': 'invalid_token'
+                    }
+                }), 401
+                
+            current_user = get_user_by_id(user_id)
             if not current_user:
-                return jsonify({'message': 'User not found!'}), 401
+                print(f"用户不存在: {user_id}")
+                return jsonify({
+                    'error': {
+                        'type': 'auth_error',
+                        'message': '用户不存在',
+                        'code': 'user_not_found'
+                    }
+                }), 401
             
-            # 调试日志
-            print(f"Token验证成功 - 用户: {current_user.username}")
-        except jwt.ExpiredSignatureError:
-            return jsonify({'message': 'Token has expired!'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'message': 'Token is invalid!'}), 401
-        
-        return f(current_user, *args, **kwargs)
+            print(f"Token验证成功 - 用户: {current_user.username} (ID: {current_user.user_id})")
+            return f(current_user, *args, **kwargs)
+            
+        except jwt.ExpiredSignatureError as e:
+            print(f"Token过期: {str(e)}")
+            return jsonify({
+                'error': {
+                    'type': 'auth_error',
+                    'message': 'Token已过期',
+                    'code': 'token_expired'
+                }
+            }), 401
+        except jwt.InvalidTokenError as e:
+            print(f"无效Token: {str(e)}")
+            return jsonify({
+                'error': {
+                    'type': 'auth_error',
+                    'message': '无效的Token',
+                    'code': 'invalid_token'
+                }
+            }), 401
+        except Exception as e:
+            print(f"Token验证异常: {str(e)}")
+            return jsonify({
+                'error': {
+                    'type': 'auth_error',
+                    'message': 'Token验证失败',
+                    'code': 'token_validation_failed'
+                }
+            }), 401
+            
     return decorated
 
 
@@ -208,27 +267,98 @@ def handle_book(isbn):
 @app.route('/api/users', methods=['POST'])
 @token_required
 def create_user(current_user):
-    """创建用户(仅管理员)"""
+    """创建用户(仅管理员)
+    成功返回:
+        {
+            "user_id": 用户ID,
+            "username": 用户名,
+            "role": 用户角色,
+            "message": "用户创建成功"
+        }
+    错误返回:
+        {
+            "error": {
+                "type": "validation_error|database_error|auth_error",
+                "message": "详细错误信息",
+                "field": "导致错误的字段名(可选)"
+            }
+        }
+    """
+    # 检查管理员权限
     if current_user.role != 'admin':
-        return jsonify({'message': '权限不足'}), 403
+        return jsonify({
+            'error': {
+                'type': 'auth_error',
+                'message': '权限不足: 只有管理员可以创建用户'
+            }
+        }), 403
     
+    # 验证请求数据
     data = request.get_json()
     if not data or not data.get('username') or not data.get('password'):
-        return jsonify({'message': '用户名和密码不能为空'}), 400
+        return jsonify({
+            'error': {
+                'type': 'validation_error',
+                'message': '用户名和密码不能为空',
+                'field': 'username' if not data.get('username') else 'password'
+            }
+        }), 400
     
-    # 创建用户逻辑
-    session = DBSession()
-    try:
-        if session.query(User).filter_by(username=data['username']).first():
-            return jsonify({'message': '用户名已存在'}), 400
-            
-        user = User(username=data['username'], role=data.get('role', 'user'))
-        user.set_password(data['password'])
-        session.add(user)
-        session.commit()
-        return jsonify({'message': '用户创建成功'}), 201
-    finally:
-        session.close()
+    # 使用改进后的register_user函数创建用户
+    result = register_user(
+        username=data['username'],
+        hashed_password=data['password'],
+        role=data.get('role', 'user')
+    )
+    
+    # 处理结果
+    if isinstance(result, dict) and 'type' in result:  # 错误情况
+        return jsonify({'error': result}), 400
+    elif isinstance(result, User):  # 成功情况
+        return jsonify({
+            'user_id': result.user_id,
+            'username': result.username,
+            'role': result.role,
+            'message': '用户创建成功'
+        }), 201
+    else:  # 未知错误
+        return jsonify({
+            'error': {
+                'type': 'server_error',
+                'message': '未知服务器错误'
+            }
+        }), 500
+
+@app.route('/api/users/check', methods=['GET'])
+@token_required
+def check_username(current_user):
+    """检查用户名是否可用
+    返回:
+        {
+            "available": true/false
+        }
+    """
+    if current_user.role != 'admin':
+        return jsonify({
+            'error': {
+                'type': 'auth_error',
+                'message': '权限不足: 只有管理员可以检查用户名'
+            }
+        }), 403
+    
+    username = request.args.get('username')
+    if not username:
+        return jsonify({
+            'error': {
+                'type': 'validation_error',
+                'message': '必须提供username参数',
+                'field': 'username'
+            }
+        }), 400
+    
+    with DBSession() as session:
+        user = session.query(User).filter_by(username=username).first()
+        return jsonify({'available': user is None})
 
 @app.route('/api/users/<int:user_id>', methods=['PUT', 'DELETE'])
 @token_required
@@ -237,8 +367,7 @@ def manage_user(current_user, user_id):
     if current_user.role != 'admin':
         return jsonify({'message': '权限不足'}), 403
     
-    session = DBSession()
-    try:
+    with DBSession() as session:
         user = session.query(User).get(user_id)
         if not user:
             return jsonify({'message': '用户不存在'}), 404
@@ -256,8 +385,6 @@ def manage_user(current_user, user_id):
             session.delete(user)
             session.commit()
             return jsonify({'message': '用户删除成功'})
-    finally:
-        session.close()
 
 
 
@@ -292,14 +419,11 @@ def manage_bookshelf(current_user, isbn):
             return jsonify({'error': str(e)}), 400
             
     elif request.method == 'DELETE':
-        session = DBSession()
-        try:
+        with DBSession() as session:
             result = remove_book_from_user(isbn, current_user.user_id)
             if not result:
                 return jsonify({'error': 'Book not found in your shelf'}), 404
             return jsonify(result)
-        finally:
-            session.close()
 
 if __name__ == '__main__':
     app.run(debug=True)

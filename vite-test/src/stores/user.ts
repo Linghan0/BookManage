@@ -23,6 +23,7 @@ export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
   const isAuthenticated = ref(false)
   const users = ref<User[]>([])
+  const token = ref<string | null>(null)
   const pagination = ref<Pagination>({
     currentPage: 1,
     pageSize: 10,
@@ -41,12 +42,13 @@ export const useUserStore = defineStore('user', () => {
 
   const init = async () => {
     console.log('检查本地token...')
-    const token = localStorage.getItem('token')
-    console.log('获取到的token:', token)
+    const storedToken = localStorage.getItem('token')
+    token.value = storedToken
+    console.log('获取到的token:', storedToken)
     
-    if (token) {
+    if (storedToken) {
       console.log('设置请求头Authorization...')
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
       
       try {
         console.log('调用验证接口...')
@@ -62,12 +64,23 @@ export const useUserStore = defineStore('user', () => {
         console.log('登录状态验证成功')
       } catch (error) {
         console.error('验证失败:', error)
-        localStorage.removeItem('token')
-        delete axios.defaults.headers.common['Authorization']
+        clearToken()
       }
     } else {
       console.log('未找到本地token')
     }
+  }
+
+  const clearToken = () => {
+    token.value = null
+    localStorage.removeItem('token')
+    delete axios.defaults.headers.common['Authorization']
+  }
+
+  const setToken = (newToken: string) => {
+    token.value = newToken
+    localStorage.setItem('token', newToken)
+    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
   }
 
   // 初始化store
@@ -88,10 +101,8 @@ export const useUserStore = defineStore('user', () => {
         username: response.data.username,
         role: response.data.role
       }
-      console.log('Store user:', user.value)
       isAuthenticated.value = true
-      localStorage.setItem('token', response.data.token)
-      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`
+      setToken(response.data.token)
       ElMessage.success('登录成功')
       return true
     } catch (error) {
@@ -157,11 +168,14 @@ export const useUserStore = defineStore('user', () => {
     isAuthenticated,
     users,
     pagination,
+    token,
     login,
     logout,
     isAdmin,
     fetchUsers,
     createUser,
-    deleteUser
+    deleteUser,
+    setToken,
+    clearToken
   }
 })
