@@ -117,3 +117,60 @@ def delete_user(username):
         session.delete(user)
         session.commit()
         return True
+
+def get_all_users(page=1, per_page=10):
+    """获取分页的用户列表
+    Args:
+        page: 页码(从1开始)
+        per_page: 每页记录数
+    Returns:
+        tuple: (用户列表, 总数)
+    """
+    with DBSession() as session:
+        # 计算偏移量
+        offset = (page - 1) * per_page
+        
+        # 获取分页数据
+        users = session.query(User).order_by(User.user_id)\
+            .offset(offset).limit(per_page).all()
+            
+        # 获取总数
+        total = session.query(User).count()
+        
+        return users, total
+
+def update_user(user_id, update_data):
+    """更新用户信息
+    Args:
+        user_id: 用户ID
+        update_data: 更新数据 {username?, role?, password?}
+    Returns:
+        dict: 更新后的用户信息 {
+            'user_id': 用户ID,
+            'username': 用户名,
+            'role': 用户角色
+        }
+    Raises:
+        ValueError: 用户不存在或更新失败
+    """
+    with DBSession() as session:
+        user = session.query(User).get(user_id)
+        if not user:
+            raise ValueError("用户不存在")
+        
+        if 'username' in update_data:
+            user.username = update_data['username']
+        
+        if 'role' in update_data:
+            user.role = update_data['role']
+        
+        if 'password' in update_data:
+            user.set_password(update_data['password'])
+        
+        session.commit()
+        
+        return {
+            'user_id': user.user_id,
+            'username': user.username,
+            'role': user.role
+        }

@@ -27,7 +27,7 @@ from db.book_tools import (
     get_user_books_count
 )
 from db import DBSession
-from db.user_tools import authenticate_user, get_user_by_id, register_user
+from db.user_tools import authenticate_user, get_user_by_id, register_user, get_all_users, update_user
 
 
 # 添加项目根目录到Python路径
@@ -66,10 +66,16 @@ else:
 # 全局CORS配置
 @app.after_request
 def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    origin = request.headers.get('Origin')
+    if origin and origin.startswith('http://localhost'):
+        response.headers.add('Access-Control-Allow-Origin', origin)
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
+    
+    # 处理OPTIONS预检请求
+    if request.method == 'OPTIONS':
+        response.status_code = 200
     return response
 
 
@@ -329,6 +335,56 @@ def create_user(current_user):
             }
         }), 500
 
+@app.route('/api/users', methods=['GET'])
+@token_required
+def get_users(current_user):
+    """获取用户列表(仅管理员)
+    参数:
+        page: 页码(默认1)
+        size: 每页数量(默认10)
+    返回:
+        {
+            "users": [
+                {
+                    "user_id": 用户ID,
+                    "username": 用户名,
+                    "role": 用户角色
+                },
+                ...
+            ],
+            "total": 总数,
+            "page": 当前页码,
+            "per_page": 每页数量
+        }
+    """
+    # 检查管理员权限
+    if current_user.role != 'admin':
+        return jsonify({
+            'error': {
+                'type': 'auth_error',
+                'message': '权限不足: 只有管理员可以查看用户列表'
+            }
+        }), 403
+    
+    # 获取分页参数
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('size', 10))
+    
+    # 获取用户数据
+    users, total = get_all_users(page=page, per_page=per_page)
+    
+    # 格式化响应
+    return jsonify({
+        'users': [{
+            'user_id': user.user_id,
+            'username': user.username,
+            'role': user.role
+        } for user in users],
+        'total': total,
+        'page': page,
+        'per_page': per_page
+    })
+
 @app.route('/api/users/check', methods=['GET'])
 @token_required
 def check_username(current_user):
@@ -360,7 +416,7 @@ def check_username(current_user):
         user = session.query(User).filter_by(username=username).first()
         return jsonify({'available': user is None})
 
-@app.route('/api/users/<int:user_id>', methods=['PUT', 'DELETE'])
+@app.route('/api/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
 @token_required
 def manage_user(current_user, user_id):
     """管理用户(仅管理员)"""
@@ -371,17 +427,41 @@ def manage_user(current_user, user_id):
         user = session.query(User).get(user_id)
         if not user:
             return jsonify({'message': '用户不存在'}), 404
-            
+        
+        if request.method == 'GET':
+            # 获取单个用户信息
+            user = get_user_by_id(user_id)
+            if not user:
+                return jsonify({'error': '用户不存在'}), 404
+            return jsonify({
+                'user_id': user.user_id,
+                'username': user.username,
+                'role': user.role,
+                'createdAt': user.created_at.isoformat() if user.created_at else None
+            })
+    
         if request.method == 'PUT':
             data = request.get_json()
-            if 'password' in data:
-                user.set_password(data['password'])
-            if 'role' in data:
-                user.role = data['role']
-            session.commit()
-            return jsonify({'message': '用户更新成功'})
+            if not data:
+                return jsonify({'message': '无效的请求数据'}), 400
+            
+            try:
+                updated_user = update_user(user_id, data)
+                return jsonify({
+                    'message': '用户更新成功',
+                    'user': updated_user
+                })
+            except ValueError as e:
+                return jsonify({'message': str(e)}), 400
             
         elif request.method == 'DELETE':
+            if user.role == 'admin':
+                return jsonify({
+                    'error': {
+                        'type': 'auth_error',
+                        'message': '不能删除管理员用户'
+                    }
+                }), 400
             session.delete(user)
             session.commit()
             return jsonify({'message': '用户删除成功'})

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { 
   ElTable, 
   ElTableColumn, 
@@ -42,17 +43,19 @@ const handleSizeChange = (size: number) => {
   userStore.fetchUsers()
 }
 
-const handleEdit = (id: string) => {
-  $router.push(`/admin/users/edit/${id}`)
+const router = useRouter()
+
+const handleEdit = (user_id: string) => {
+  router.push(`/admin/users/edit/${user_id}`)
 }
 
-const handleDelete = async (id: string) => {
-  try {
-    await userStore.deleteUser(id)
-    ElMessage.success('删除用户成功')
-  } catch (error) {
-    ElMessage.error('删除用户失败')
+const handleDelete = async (user_id: string) => {
+  const user = userStore.users.find(u => u.user_id === user_id)
+  if (user?.role === 'admin') {
+    ElMessage.warning('管理员用户不可删除')
+    return
   }
+  await userStore.deleteUser(user_id)
 }
 
 const handleSubmit = async () => {
@@ -79,20 +82,26 @@ const handleSubmit = async () => {
     <div class="header">
       <h2>用户管理</h2>
       <div>
-        <el-button type="primary" @click="$router.push('/admin/register')">
+        <el-button type="primary" @click="router.push('/admin/register')">
           添加用户
         </el-button>
       </div>
     </div>
 
     <el-table :data="userStore.users" border style="width: 100%">
+      <el-table-column prop="user_id" label="ID" width="120" />
       <el-table-column prop="username" label="用户名" />
       <el-table-column prop="role" label="角色" />
     <el-table-column label="操作" width="180">
         <template #default="{ row }">
-          <el-button size="small" @click="handleEdit(row.id)">编辑</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(row.id)">
-            删除
+          <el-button size="small" @click="handleEdit(row.user_id)">编辑</el-button>
+          <el-button 
+            size="small" 
+            type="danger" 
+            :disabled="row.role === 'admin'"
+            @click="handleDelete(row.user_id)"
+          >
+            {{ row.role === 'admin' ? '不可删除' : '删除' }}
           </el-button>
         </template>
       </el-table-column>
@@ -125,6 +134,6 @@ const handleSubmit = async () => {
 
 .pagination {
   margin-top: 20px;
-  justify-content: flex-end;
+  justify-content: center;
 }
 </style>

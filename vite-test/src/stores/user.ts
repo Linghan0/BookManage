@@ -7,7 +7,7 @@ axios.defaults.baseURL = 'http://localhost:5000'
 import { ElMessage } from 'element-plus'
 
 interface User {
-  id: string
+  user_id: string
   username: string
   role: 'admin' | 'user'
   createdAt?: string
@@ -55,11 +55,11 @@ export const useUserStore = defineStore('user', () => {
         const response = await axios.get('/api/validate')
         console.log('验证接口响应:', response.data)
         
-        user.value = {
-          id: response.data.user_id.toString(),
-          username: response.data.username,
-          role: response.data.role
-        }
+      user.value = {
+        user_id: response.data.user_id.toString(),
+        username: response.data.username,
+        role: response.data.role
+      }
         isAuthenticated.value = true
         console.log('登录状态验证成功')
       } catch (error) {
@@ -97,7 +97,7 @@ export const useUserStore = defineStore('user', () => {
       console.log('Login response:', response)
       console.log('User data:', response.data)
       user.value = {
-        id: response.data.user_id.toString(),
+        user_id: response.data.user_id.toString(),
         username: response.data.username,
         role: response.data.role
       }
@@ -122,21 +122,57 @@ export const useUserStore = defineStore('user', () => {
     return user.value?.role === 'admin'
   }
 
+  const lastUpdated = ref<number>(0)
+  const CACHE_EXPIRY = 5 * 60 * 1000 // 5分钟缓存有效期
+
   const fetchUsers = async (forceRefresh = false) => {
     try {
-      const response = await axios.get('/api/users', {
-        params: {
-          page: pagination.value.currentPage,
-          size: pagination.value.pageSize
+      // 强制刷新或缓存过期时重新获取
+      if (forceRefresh || Date.now() - lastUpdated.value > CACHE_EXPIRY) {
+        const response = await axios.get('/api/users', {
+          params: {
+            page: pagination.value.currentPage,
+            size: pagination.value.pageSize
+          }
+        })
+        
+        // 确保响应数据格式正确
+        if (!response.data?.users) {
+          throw new Error('无效的用户数据格式')
         }
-      })
-      users.value = response.data.users
-      pagination.value.total = response.data.total
+
+        // 转换并存储用户数据
+        users.value = response.data.users.map((user: {
+          user_id: number | string
+          username: string
+          role: 'admin' | 'user'
+          createdAt?: string
+        }) => ({
+          user_id: String(user.user_id),
+          username: user.username,
+          role: user.role,
+          createdAt: user.createdAt
+        }))
+
+        console.log('用户数据已缓存:', users.value)
+        pagination.value.total = response.data.total
+        lastUpdated.value = Date.now()
+      }
       return true
     } catch (error) {
-      ElMessage.error('获取用户列表失败')
+      console.error('获取用户列表失败:', error)
+      const errorMessage = error instanceof Error ? error.message : '未知错误'
+      ElMessage.error('获取用户列表失败: ' + errorMessage)
       return false
     }
+  }
+
+  const getCachedUser = (user_id: string) => {
+    // 缓存有效时返回本地数据
+    if (Date.now() - lastUpdated.value <= CACHE_EXPIRY) {
+      return users.value.find(u => u.user_id === user_id)
+    }
+    return undefined
   }
 
   const createUser = async (userData: Omit<User, 'id'> & { password: string }) => {
@@ -151,15 +187,25 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  const deleteUser = async (id: string) => {
+  const deleteUser = async (user_id: string) => {
     try {
-      await axios.delete(`/api/users/${id}`)
+      await axios.delete(`/api/users/${user_id}`)
       ElMessage.success('删除用户成功')
       await fetchUsers(true)
       return true
     } catch (error) {
       ElMessage.error('删除用户失败')
       return false
+    }
+  }
+
+  const fetchUserById = async (user_id: string) => {
+    try {
+      const response = await axios.get(`/api/users/${user_id}`)
+      return response.data
+    } catch (error) {
+      ElMessage.error('获取用户信息失败')
+      throw error
     }
   }
 
@@ -173,6 +219,8 @@ export const useUserStore = defineStore('user', () => {
     logout,
     isAdmin,
     fetchUsers,
+    getCachedUser,
+    fetchUserById,
     createUser,
     deleteUser,
     setToken,
