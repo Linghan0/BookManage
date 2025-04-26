@@ -69,6 +69,23 @@ class Book(Base):
     
     # 与User的关系 (多对多)
     users = relationship("UserBook", back_populates="book")
+
+    def to_dict(self):
+        """将模型转换为字典"""
+        return {
+            'isbn': self.isbn,
+            'title': self.title,
+            'author': self.author,
+            'translator': self.translator,
+            'genre': self.genre,
+            'country': self.country,
+            'era': self.era,
+            'opac_nlc_class': self.opac_nlc_class,
+            'publish_year': self.publish_year,
+            'page': self.page,
+            'cover_url': self.cover_url,
+            'description': self.description
+        }
     
     __table_args__ = (
         CheckConstraint('length(isbn) BETWEEN 10 AND 13', name='check_isbn_length'),

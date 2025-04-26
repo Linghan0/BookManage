@@ -1,12 +1,78 @@
 # -*- coding: utf-8 -*-
+import re
 
 from db import get_session
 from models import Book, UserBook
 from tools.bookdata import get_book_info, get_book_data
 
+def format_isbn(isbn: str) -> str:
+    """格式化ISBN：移除所有非数字字符并验证长度"""
+    cleaned_isbn = re.sub(r'[^\d]', '', isbn)
+    if len(cleaned_isbn) not in (10, 13):
+        raise ValueError('ISBN必须是10位或13位数字')
+    return cleaned_isbn
+
 
 ## 查询
 
+# 从国家图书馆API获取书籍信息
+def fetch_book_auto(isbn):
+    """从国家图书馆API获取书籍信息"""
+
+    
+    try:
+        # 获取原始书籍数据
+        raw_data = get_book_info(isbn)
+        if not raw_data or "error" in raw_data:
+            return None
+            
+        # 转换为数据库格式
+        book_data = get_book_data(raw_data)
+        if not book_data:
+            return None
+            
+        return book_data
+    except Exception as e:
+        import logging
+        logging.error(f"获取书籍信息失败: {e}")
+        return None
+
+# 根据ISBN获取书籍
+def get_book_by_isbn(isbn):
+    """根据ISBN获取书籍详情"""
+    session = get_session()
+    try:
+        formatted_isbn = format_isbn(isbn)
+        book = session.query(Book).filter_by(isbn=formatted_isbn).first()
+        if not book:
+            return None
+            
+        return {
+            'isbn': book.isbn,
+            'title': book.title,
+            'author': book.author,
+            'translator': book.translator or '',
+            'genre': book.genre or '',
+            'country': book.country or '',
+            'era': book.era or '',
+            'opac_nlc_class': book.opac_nlc_class or '',
+            'publisher': book.publisher,
+            'publish_year': book.publish_year,
+            'page': book.page,
+            'cover_url': book.cover_url or '',
+            'description': book.description or ''
+        }
+    finally:
+        session.close()
+
+# 获取书籍总数
+def get_books_count():
+    """获取书籍总数"""
+    session = get_session()
+    try:
+        return session.query(Book).count()
+    finally:
+        session.close()
 
 # 获取所有书籍(支持分页)
 def get_all_books(page=None, per_page=None):
@@ -45,39 +111,55 @@ def get_all_books(page=None, per_page=None):
     finally:
         session.close()
 
-# 根据ISBN获取书籍
-def get_book_by_isbn(isbn):
-    """根据ISBN获取书籍详情"""
+# 根据关键字搜索图书
+def search_books(field, value):
+    """根据字段搜索图书
+    参数:
+        field: 搜索字段(isbn/title/author)
+        value: 搜索值
+    返回:
+        图书列表
+    异常:
+        ValueError: 搜索字段无效
+        Exception: 搜索结果为空
+    """
     session = get_session()
     try:
-        book = session.query(Book).filter_by(isbn=isbn).first()
-        if not book:
-            return None
+        valid_fields = ['isbn', 'title', 'author']
+        if field not in valid_fields:
+            raise ValueError('Invalid search field')
+        
+        if field == 'isbn':
+            # 先查询本地数据库
+            books = session.query(Book).filter(Book.isbn.like(f'%{value}%')).all()
             
-        return {
-            'isbn': book.isbn,
-            'title': book.title,
-            'author': book.author,
-            'translator': book.translator or '',
-            'genre': book.genre or '',
-            'country': book.country or '',
-            'era': book.era or '',
-            'opac_nlc_class': book.opac_nlc_class or '',
-            'publisher': book.publisher,
-            'publish_year': book.publish_year,
-            'page': book.page,
-            'cover_url': book.cover_url or '',
-            'description': book.description or ''
-        }
+            # 如果没有结果，尝试从API获取
+            if not books:
+                book_data = fetch_book_auto(value)
+                if book_data:
+                    # 创建书籍记录
+                    create_book(book_data)
+                    # 重新查询
+                    books = session.query(Book).filter_by(isbn=value).all()
+                    
+        elif field == 'title':
+            books = session.query(Book).filter(Book.title.like(f'%{value}%')).all()
+        else:
+            books = session.query(Book).filter(Book.author.like(f'%{value}%')).all()
+        
+        if not books:
+            raise Exception('No books found matching the search criteria')
+        
+        return [book.to_dict() for book in books]
     finally:
         session.close()
 
-# 获取书籍总数
-def get_books_count():
-    """获取书籍总数"""
+# 获取用户书籍总数
+def get_user_books_count(user_id):
+    """获取用户书籍总数"""
     session = get_session()
     try:
-        return session.query(Book).count()
+        return session.query(UserBook).filter_by(user_id=user_id).count()
     finally:
         session.close()
 
@@ -110,36 +192,7 @@ def get_user_books(user_id, page=None, per_page=None):
     finally:
         session.close()
 
-# 获取用户书籍总数
-def get_user_books_count(user_id):
-    """获取用户书籍总数"""
-    session = get_session()
-    try:
-        return session.query(UserBook).filter_by(user_id=user_id).count()
-    finally:
-        session.close()
 
-# 从国家图书馆API获取书籍信息
-def fetch_book_auto(isbn):
-    """从国家图书馆API获取书籍信息"""
-
-    
-    try:
-        # 获取原始书籍数据
-        raw_data = get_book_info(isbn)
-        if not raw_data or "error" in raw_data:
-            return None
-            
-        # 转换为数据库格式
-        book_data = get_book_data(raw_data)
-        if not book_data:
-            return None
-            
-        return book_data
-    except Exception as e:
-        import logging
-        logging.error(f"获取书籍信息失败: {e}")
-        return None
 
 
 # 增加
@@ -150,6 +203,13 @@ def create_book(data):
     """创建新书"""
     session = get_session()
     try:
+        # 必填字段验证
+        required_fields = ['isbn', 'title']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                raise ValueError(f"缺少必填字段: {field}")
+
+        # 创建书籍记录
         book = Book(
             isbn=data['isbn'],
             title=data['title'],

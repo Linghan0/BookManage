@@ -12,8 +12,9 @@ from flask_cors import CORS
 
 
 from config import DB_PATH, SECRET_KEY
-from models import User
+from models import User, Book
 from db.init_db import init_database
+from db import book_tools
 from db.book_tools import (
     get_all_books,
     create_book,
@@ -486,6 +487,26 @@ def get_user_books(current_user):
         'page': page,
         'per_page': per_page
     })
+
+@app.route('/api/books/search', methods=['GET'])
+def search_books():
+    search_field = request.args.get('field')
+    search_value = request.args.get('value')
+    
+    if not search_field or not search_value:
+        return jsonify({'error': 'Missing search parameters'}), 400
+    
+    try:
+        books = book_tools.search_books(search_field, search_value)
+        return jsonify(books)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        app.logger.error(f'Search error: {str(e)}')
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        }), 500
 
 @app.route('/api/bookshelf/<isbn>', methods=['POST', 'DELETE'])
 @token_required

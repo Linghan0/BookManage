@@ -4,7 +4,7 @@ import axios from 'axios'
 
 // 明确设置baseURL
 axios.defaults.baseURL = 'http://localhost:5000'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 interface User {
   user_id: string
@@ -82,6 +82,30 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('token', newToken)
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
   }
+
+  // 添加全局错误处理
+  axios.interceptors.response.use(
+    response => response,
+    error => {
+      if (error.response?.status === 401) {
+        clearToken()
+        ElMessageBox.confirm(
+          '登录已过期，请重新登录',
+          '提示',
+          {
+            confirmButtonText: '重新登录',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        ).then(() => {
+          window.location.href = '/login'
+        }).catch(() => {
+          // 用户取消操作
+        })
+      }
+      return Promise.reject(error)
+    }
+  )
 
   // 初始化store
   init()
