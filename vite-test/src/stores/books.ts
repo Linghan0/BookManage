@@ -120,12 +120,29 @@ export const useBookStore = defineStore('books', () => {
     }
   }
 
+  // 删除书籍
+  const deleteBook = async (isbn: string) => {
+    try {
+      await axios.delete(`/api/books/${isbn}`)
+      // 从本地缓存删除
+      await initDB()
+      await dbHelper.delete(isbn)
+      // 从当前列表删除
+      books.value = books.value.filter(book => book.isbn !== isbn)
+      ElMessage.success('删除书籍成功')
+    } catch (error) {
+      ElMessage.error('删除书籍失败')
+      throw error
+    }
+  }
+
   return {
     books,
     pagination,
     lastUpdated,
     fetchBooks,
     getBookByIsbn,
-    loadFromCache
+    loadFromCache,
+    deleteBook
   }
 })

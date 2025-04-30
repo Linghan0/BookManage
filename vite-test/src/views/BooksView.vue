@@ -3,14 +3,25 @@ import { ref, onMounted } from 'vue'
 import axios from '@/utils/http'
 import { ElMessage } from 'element-plus'
 
+// 类型守卫函数
+function isErrorWithMessage(error: unknown): error is { message: string } {
+  return typeof error === 'object' && error !== null && 'message' in error
+}
+
+function getErrorMessage(error: unknown): string {
+  if (isErrorWithMessage(error)) return error.message
+  if (error instanceof Error) return error.message
+  return '未知错误'
+}
+
 // 搜索相关状态
 const searchForm = ref({
   field: 'isbn',
   value: ''
 })
 const searchOptions = [
-  { value: 'title', label: '书名' },
   { value: 'isbn', label: 'ISBN' },
+  { value: 'title', label: '书名' },
   { value: 'author', label: '作者' }
 ]
 const isSearching = ref(false)
@@ -41,8 +52,8 @@ const fetchBooks = async () => {
     })
     tableData.value = data.items
     pagination.value.total = data.total
-  } catch (error) {
-    ElMessage.error('获取图书列表失败')
+  } catch (error: unknown) {
+    ElMessage.error(`获取图书列表失败: ${getErrorMessage(error)}`)
   } finally {
     loading.value = false
   }
@@ -90,16 +101,12 @@ const handleSearch = async () => {
       pagination.value.total = 0
       ElMessage.warning('未找到相关书籍')
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('搜索错误:', error)
-    if (error.response) {
-      if (error.response.status === 404) {
-        ElMessage.warning('未找到相关书籍')
-      } else {
-        ElMessage.error(`搜索失败: ${error.response.data.message || '服务器错误'}`)
-      }
+    if (isErrorWithMessage(error) && error.message.includes('404')) {
+      ElMessage.warning('未找到相关书籍')
     } else {
-      ElMessage.error('网络错误，请检查连接')
+      ElMessage.error(`搜索失败: ${getErrorMessage(error)}`)
     }
   } finally {
     loading.value = false
@@ -147,8 +154,8 @@ const addToShelf = async () => {
     })
     ElMessage.success('添加成功')
     addDialogVisible.value = false
-  } catch (error) {
-    ElMessage.error('添加失败')
+  } catch (error: unknown) {
+    ElMessage.error(`添加到书架失败: ${getErrorMessage(error)}`)
   } finally {
     loading.value = false
   }
@@ -161,17 +168,21 @@ onMounted(() => {
 
 <template>
   <div class="books-view">
+    <!-- 标题 -->
+    <el-page-header @back="$router.go(-1)">
+      <template #content>
+        <div class="page-title">
+          <span>图书列表</span>
+        </div>
+      </template>
+    </el-page-header>
+    
     <!-- 搜索栏 -->
     <div class="search-container">
       <el-form :inline="true" :model="searchForm" class="search-form">
         <el-form-item label="搜索字段：">
           <el-select v-model="searchForm.field">
-            <el-option 
-              v-for="item in searchOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
+            <el-option v-for="item in searchOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="搜索内容：">
@@ -185,12 +196,7 @@ onMounted(() => {
     </div>
 
     <!-- 书籍表格 -->
-    <el-table 
-      :data="tableData" 
-      height="500" 
-      style="width: 100%"
-      v-loading="loading"
-    >
+    <el-table :data="tableData" height="500" style="width: 100%" v-loading="loading">
       <el-table-column prop="isbn" label="ISBN" width="150" />
       <el-table-column prop="title" label="书名" width="200" show-overflow-tooltip />
       <el-table-column prop="author" label="作者" width="150" />
@@ -210,11 +216,7 @@ onMounted(() => {
       <el-table-column prop="description" label="描述" width="200" show-overflow-tooltip />
       <el-table-column label="操作" width="150" fixed="right">
         <template #default="{row}">
-          <el-button 
-            type="primary" 
-            size="small"
-            @click="showAddDialog(row.isbn)"
-          >
+          <el-button type="primary" size="small" @click="showAddDialog(row.isbn)">
             添加到书架
           </el-button>
         </template>
@@ -222,16 +224,9 @@ onMounted(() => {
     </el-table>
 
     <!-- 分页 -->
-    <el-pagination
-      class="pagination"
-      v-model:current-page="pagination.page"
-      :page-size="pagination.pageSize"
-      :page-sizes="[10, 20, 50, 100]"
-      :total="pagination.total"
-      @current-change="handlePageChange"
-      @size-change="handleSizeChange"
-      layout="total, sizes, prev, pager, next, jumper"
-    />
+    <el-pagination class="pagination" v-model:current-page="pagination.page" :page-size="pagination.pageSize"
+      :page-sizes="[10, 20, 50, 100]" :total="pagination.total" @current-change="handlePageChange"
+      @size-change="handleSizeChange" layout="total, sizes, prev, pager, next, jumper" />
 
     <!-- 添加到书架对话框 -->
     <el-dialog v-model="addDialogVisible" title="添加到书架" width="30%">

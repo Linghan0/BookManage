@@ -49,4 +49,24 @@ const router = createRouter({
   ]
 })
 
+// 防止重复导航
+let isNavigating = false
+
+router.beforeEach((_to, _from, next) => {
+  if (isNavigating) {
+    return next(false)
+  }
+  isNavigating = true
+  next()
+})
+
+router.afterEach(() => {
+  isNavigating = false
+})
+
+// 全局错误处理
+router.onError((error) => {
+  console.error('Router error:', error)
+})
+
 export default router

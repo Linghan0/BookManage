@@ -253,23 +253,53 @@ def handle_books():
 @app.route('/api/books/<isbn>', methods=['GET', 'PUT', 'DELETE'])
 def handle_book(isbn):
     if request.method == 'GET':
-        book = get_book_by_isbn(isbn)
-        if not book:
-            return jsonify({'error': 'Book not found'}), 404
-        return jsonify(book)
-        
+        try:
+            book = get_book_by_isbn(isbn)
+            if not book:
+                return jsonify({
+                    'success': False,
+                    'message': '书籍不存在'
+                }), 404
+            return jsonify({
+                'success': True,
+                'book': book
+            })
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'message': f'获取书籍信息失败: {str(e)}'
+            }), 500
+            
     elif request.method == 'PUT':
-        data = request.get_json()
-        result = update_book(isbn, data)
-        if not result:
-            return jsonify({'error': 'Book not found'}), 404
-        return jsonify(result)
-        
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({
+                    'success': False,
+                    'message': '缺少请求数据'
+                }), 400
+                
+            result = update_book(isbn, data)
+            if not result['success']:
+                return jsonify(result), 400
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'message': f'更新书籍失败: {str(e)}'
+            }), 500
+            
     elif request.method == 'DELETE':
-        result = delete_book(isbn)
-        if not result:
-            return jsonify({'error': 'Book not found'}), 404
-        return jsonify(result)
+        try:
+            result = delete_book(isbn)
+            if not result['success']:
+                return jsonify(result), 400
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'message': f'删除书籍失败: {str(e)}'
+            }), 500
 
 @app.route('/api/users', methods=['POST'])
 @token_required

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { 
-  ElTable, 
-  ElTableColumn, 
-  ElButton, 
-  ElDialog, 
-  ElMessage, 
-  ElFormItem, 
+import {
+  ElTable,
+  ElTableColumn,
+  ElButton,
+  ElDialog,
+  ElMessage,
+  ElFormItem,
   ElInput,
   ElSelect,
   ElOption,
@@ -92,30 +92,19 @@ const handleSubmit = async () => {
       <el-table-column prop="user_id" label="ID" width="120" />
       <el-table-column prop="username" label="用户名" />
       <el-table-column prop="role" label="角色" />
-    <el-table-column label="操作" width="180">
+      <el-table-column label="操作" width="180">
         <template #default="{ row }">
           <el-button size="small" @click="handleEdit(row.user_id)">编辑</el-button>
-          <el-button 
-            size="small" 
-            type="danger" 
-            :disabled="row.role === 'admin'"
-            @click="handleDelete(row.user_id)"
-          >
+          <el-button size="small" type="danger" :disabled="row.role === 'admin'" @click="handleDelete(row.user_id)">
             {{ row.role === 'admin' ? '不可删除' : '删除' }}
           </el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <el-pagination
-      class="pagination"
-      :current-page="userStore.pagination.currentPage"
-      :page-size="userStore.pagination.pageSize"
-      :total="userStore.pagination.total"
-      @current-change="handlePageChange"
-      @size-change="handleSizeChange"
-      layout="total, sizes, prev, pager, next, jumper"
-    />
+    <el-pagination class="pagination" :current-page="userStore.pagination.currentPage"
+      :page-size="userStore.pagination.pageSize" :total="userStore.pagination.total" @current-change="handlePageChange"
+      @size-change="handleSizeChange" layout="total, sizes, prev, pager, next, jumper" />
 
 
   </div>

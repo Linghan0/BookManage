@@ -6,6 +6,17 @@ import axios from 'axios'
 axios.defaults.baseURL = 'http://localhost:5000'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+// 类型守卫函数
+function isErrorWithMessage(error: unknown): error is { message: string } {
+  return typeof error === 'object' && error !== null && 'message' in error
+}
+
+function getErrorMessage(error: unknown): string {
+  if (isErrorWithMessage(error)) return error.message
+  if (error instanceof Error) return error.message
+  return '未知错误'
+}
+
 interface User {
   user_id: string
   username: string
@@ -129,8 +140,8 @@ export const useUserStore = defineStore('user', () => {
       setToken(response.data.token)
       ElMessage.success('登录成功')
       return true
-    } catch (error) {
-      ElMessage.error('登录失败')
+    } catch (error: unknown) {
+      ElMessage.error(getErrorMessage(error))
       return false
     }
   }
@@ -183,10 +194,9 @@ export const useUserStore = defineStore('user', () => {
         lastUpdated.value = Date.now()
       }
       return true
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('获取用户列表失败:', error)
-      const errorMessage = error instanceof Error ? error.message : '未知错误'
-      ElMessage.error('获取用户列表失败: ' + errorMessage)
+      ElMessage.error(`获取用户列表失败: ${getErrorMessage(error)}`)
       return false
     }
   }
@@ -205,8 +215,8 @@ export const useUserStore = defineStore('user', () => {
       ElMessage.success('创建用户成功')
       await fetchUsers(true)
       return true
-    } catch (error) {
-      ElMessage.error('创建用户失败')
+    } catch (error: unknown) {
+      ElMessage.error(getErrorMessage(error))
       return false
     }
   }
@@ -217,8 +227,8 @@ export const useUserStore = defineStore('user', () => {
       ElMessage.success('删除用户成功')
       await fetchUsers(true)
       return true
-    } catch (error) {
-      ElMessage.error('删除用户失败')
+    } catch (error: unknown) {
+      ElMessage.error(getErrorMessage(error))
       return false
     }
   }
@@ -227,8 +237,8 @@ export const useUserStore = defineStore('user', () => {
     try {
       const response = await axios.get(`/api/users/${user_id}`)
       return response.data
-    } catch (error) {
-      ElMessage.error('获取用户信息失败')
+    } catch (error: unknown) {
+      ElMessage.error(getErrorMessage(error))
       throw error
     }
   }

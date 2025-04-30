@@ -311,18 +311,83 @@ def create_book_isbn(isbn):
 
 # 更新书籍信息
 def update_book(isbn, data):
-    """更新书籍信息"""
+    """更新书籍信息
+    Args:
+        isbn: 要更新的书籍ISBN
+        data: 包含更新字段的字典
+    Returns:
+        dict: {
+            'success': bool,  # 操作是否成功
+            'message': str,    # 结果消息
+            'book': dict       # 更新后的书籍信息(成功时)
+        }
+    Raises:
+        ValueError: 如果ISBN无效或必填字段缺失
+    """
     session = get_session()
     try:
-        book = session.query(Book).filter_by(isbn=isbn).first()
+        # 验证ISBN格式
+        formatted_isbn = format_isbn(isbn)
+        
+        # 获取要更新的书籍
+        book = session.query(Book).filter_by(isbn=formatted_isbn).first()
         if not book:
-            return None
+            return {
+                'success': False,
+                'message': '书籍不存在',
+                'book': None
+            }
             
-        book.title = data.get('title', book.title)
-        book.author = data.get('author', book.author)
-        book.publisher = data.get('publisher', book.publisher)
+        # 更新可修改字段
+        updatable_fields = [
+            'title', 'author', 'translator', 'genre', 'country', 
+            'era', 'opac_nlc_class', 'publisher', 'publish_year',
+            'page', 'cover_url', 'description'
+        ]
+        
+        for field in updatable_fields:
+            if field in data:
+                setattr(book, field, data[field])
+        
+        # 提交更改
         session.commit()
-        return {'message': 'Book updated'}
+        
+        # 返回更新后的书籍数据
+        return {
+            'success': True,
+            'message': '书籍更新成功',
+            'book': {
+                'isbn': book.isbn,
+                'title': book.title,
+                'author': book.author,
+                'translator': book.translator,
+                'genre': book.genre,
+                'country': book.country,
+                'era': book.era,
+                'opac_nlc_class': book.opac_nlc_class,
+                'publisher': book.publisher,
+                'publish_year': book.publish_year,
+                'page': book.page,
+                'cover_url': book.cover_url,
+                'description': book.description
+            }
+        }
+    except ValueError as e:
+        session.rollback()
+        return {
+            'success': False,
+            'message': f'参数错误: {str(e)}',
+            'book': None
+        }
+    except Exception as e:
+        session.rollback()
+        import logging
+        logging.error(f"更新书籍失败: {str(e)}")
+        return {
+            'success': False,
+            'message': f'更新书籍失败: {str(e)}',
+            'book': None
+        }
     finally:
         session.close()
 
@@ -332,16 +397,43 @@ def update_book(isbn, data):
 
 # 删除书籍
 def delete_book(isbn):
-    """删除书籍"""
+    """删除书籍
+    先删除用户书籍关联，再删除书籍本身
+    使用事务确保数据一致性
+    """
     session = get_session()
     try:
+        # 开始事务
+        session.begin()
+        
+        # 1. 先删除用户书籍关联
+        session.query(UserBook).filter_by(book_isbn=isbn).delete()
+        
+        # 2. 删除书籍本身
         book = session.query(Book).filter_by(isbn=isbn).first()
         if not book:
-            return None
+            session.rollback()
+            return {
+                'success': False,
+                'message': '书籍不存在'
+            }
             
         session.delete(book)
         session.commit()
-        return {'message': 'Book deleted'}
+        
+        return {
+            'success': True,
+            'message': '书籍删除成功'
+        }
+        
+    except Exception as e:
+        session.rollback()
+        import logging
+        logging.error(f"删除书籍失败: {str(e)}")
+        return {
+            'success': False,
+            'message': f'删除书籍失败: {str(e)}'
+        }
     finally:
         session.close()
 
