@@ -403,16 +403,21 @@ def delete_book(isbn):
     """
     session = get_session()
     try:
-        # 开始事务
+        # 开始事务并打印详细日志
         session.begin()
+        print(f"Starting transaction to delete book with ISBN: {isbn}")
         
         # 1. 先删除用户书籍关联
-        session.query(UserBook).filter_by(book_isbn=isbn).delete()
+        print("Deleting user-book associations...")
+        deleted_count = session.query(UserBook).filter_by(isbn=isbn).delete()
+        print(f"Deleted {deleted_count} user-book associations")
         
         # 2. 删除书籍本身
+        print("Deleting book record...")
         book = session.query(Book).filter_by(isbn=isbn).first()
         if not book:
             session.rollback()
+            print(f"Book with ISBN {isbn} not found - rolling back transaction")
             return {
                 'success': False,
                 'message': '书籍不存在'
@@ -420,6 +425,14 @@ def delete_book(isbn):
             
         session.delete(book)
         session.commit()
+        print(f"Successfully committed deletion of book with ISBN {isbn}")
+        
+        # 验证删除是否成功
+        book_exists = session.query(Book).filter_by(isbn=isbn).first()
+        if book_exists:
+            print("WARNING: Book still exists after deletion!")
+        else:
+            print("Book successfully deleted from database")
         
         return {
             'success': True,
@@ -429,13 +442,23 @@ def delete_book(isbn):
     except Exception as e:
         session.rollback()
         import logging
-        logging.error(f"删除书籍失败: {str(e)}")
+        logging.error(f"删除书籍失败: {str(e)}", exc_info=True)
+        print(f"Error deleting book: {str(e)} - rolling back transaction")
+        
+        # 检查是否是外键约束错误
+        if "foreign key constraint" in str(e).lower():
+            return {
+                'success': False,
+                'message': '删除失败：存在关联数据'
+            }
+            
         return {
             'success': False,
             'message': f'删除书籍失败: {str(e)}'
         }
     finally:
         session.close()
+        print("Database session closed")
 
 
 # 用户书籍
@@ -489,7 +512,7 @@ def remove_book_from_user(isbn, user_id):
     try:
         user_book = session.query(UserBook).filter_by(
             user_id=user_id,
-            book_isbn=isbn
+            isbn=isbn
         ).first()
         
         if not user_book:

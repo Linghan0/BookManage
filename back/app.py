@@ -250,56 +250,75 @@ def handle_books():
         result = create_book(data)
         return jsonify(result), 201
 
-@app.route('/api/books/<isbn>', methods=['GET', 'PUT', 'DELETE'])
+@app.route('/api/books/<isbn>', methods=['GET'])
 def handle_book(isbn):
-    if request.method == 'GET':
-        try:
-            book = get_book_by_isbn(isbn)
-            if not book:
-                return jsonify({
-                    'success': False,
-                    'message': '书籍不存在'
-                }), 404
-            return jsonify({
-                'success': True,
-                'book': book
-            })
-        except Exception as e:
+    try:
+        book = get_book_by_isbn(isbn)
+        if not book:
             return jsonify({
                 'success': False,
-                'message': f'获取书籍信息失败: {str(e)}'
-            }), 500
+                'message': '书籍不存在'
+            }), 404
+        return jsonify({
+            'success': True,
+            'book': book
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'获取书籍信息失败: {str(e)}'
+        }), 500
+
+@app.route('/api/books/<isbn>', methods=['PUT'])
+@token_required
+def update_book_route(current_user, isbn):
+    """更新书籍信息(仅管理员)"""
+    try:
+        # 检查管理员权限
+        if current_user.role != 'admin':
+            return jsonify({
+                'success': False,
+                'message': '权限不足: 只有管理员可以修改书籍'
+            }), 403
+
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': '缺少请求数据'
+            }), 400
             
-    elif request.method == 'PUT':
-        try:
-            data = request.get_json()
-            if not data:
-                return jsonify({
-                    'success': False,
-                    'message': '缺少请求数据'
-                }), 400
-                
-            result = update_book(isbn, data)
-            if not result['success']:
-                return jsonify(result), 400
-            return jsonify(result)
-        except Exception as e:
+        result = update_book(isbn, data)
+        if not result['success']:
+            return jsonify(result), 400
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'更新书籍失败: {str(e)}'
+        }), 500
+
+@app.route('/api/books/<isbn>', methods=['DELETE'])
+@token_required
+def delete_book_route(current_user, isbn):
+    """删除书籍(仅管理员)"""
+    try:
+        # 检查管理员权限
+        if current_user.role != 'admin':
             return jsonify({
                 'success': False,
-                'message': f'更新书籍失败: {str(e)}'
-            }), 500
+                'message': '权限不足: 只有管理员可以删除书籍'
+            }), 403
             
-    elif request.method == 'DELETE':
-        try:
-            result = delete_book(isbn)
-            if not result['success']:
-                return jsonify(result), 400
-            return jsonify(result)
-        except Exception as e:
-            return jsonify({
-                'success': False,
-                'message': f'删除书籍失败: {str(e)}'
-            }), 500
+        result = delete_book(isbn)
+        if not result['success']:
+            return jsonify(result), 400
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'删除书籍失败: {str(e)}'
+        }), 500
 
 @app.route('/api/users', methods=['POST'])
 @token_required

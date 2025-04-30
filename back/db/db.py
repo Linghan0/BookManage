@@ -10,7 +10,12 @@ def get_engine():
     """获取数据库引擎"""
     # 将Path对象转换为字符串，并确保使用正斜杠
     db_path_str = str(DB_PATH).replace('\\', '/')
-    return create_engine(f'sqlite:///{db_path_str}', echo=True)
+    return create_engine(
+        f'sqlite:///{db_path_str}',
+        echo=True,
+        connect_args={'check_same_thread': False},
+        isolation_level='SERIALIZABLE'
+    )
 
 def init_db():
     """初始化数据库"""
@@ -21,7 +26,12 @@ def init_db():
 def get_session():
     """获取数据库会话"""
     engine = get_engine()
-    Session = sessionmaker(bind=engine)
+    Session = sessionmaker(
+        bind=engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False
+    )
     return Session()
 
 class DBSession:

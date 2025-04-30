@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from '@/utils/http'
-import { ElMessage } from 'element-plus'
+import { ElMessage , ElMessageBox } from 'element-plus'
 
 
 // 类型守卫函数
@@ -160,7 +160,7 @@ const handleSizeChange = (size: number) => {
 const handleEdit = (row: any) => {
   currentBook.value = { ...row }
   editDialogVisible.value = true
-} 
+}
 
 const submitEdit = async () => {
   try {
@@ -176,7 +176,31 @@ const submitEdit = async () => {
   }
 }
 
+// 删除图书
+const handleDelete = async (isbn: string) => {
+  try {
+    await ElMessageBox.confirm('确定要删除这本书吗？', '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
 
+    loading.value = true
+    const { data } = await axios.delete(`/api/books/${isbn}`)
+    if (data.success) {
+      ElMessage.success('删除成功')
+      fetchBooks()
+    } else {
+      ElMessage.error(data.message || '删除失败')
+    }
+  } catch (error: unknown) {
+    if (error !== 'cancel') {
+      ElMessage.error(`删除失败: ${getErrorMessage(error)}`)
+    }
+  } finally {
+    loading.value = false
+  }
+}
 
 onMounted(() => {
   fetchBooks()
@@ -231,10 +255,13 @@ onMounted(() => {
       <el-table-column prop="page" label="页数" width="100" />
       <el-table-column prop="cover_url" label="封面链接" width="180" show-overflow-tooltip />
       <el-table-column prop="description" label="描述" width="200" show-overflow-tooltip />
-      <el-table-column label="操作" width="150" fixed="right">
+      <el-table-column label="操作" width="180" fixed="right">
         <template #default="{ row }">
           <el-button type="primary" size="small" @click="handleEdit(row)">
             编辑
+          </el-button>
+          <el-button type="danger" size="small" @click="handleDelete(row.isbn)">
+            删除
           </el-button>
         </template>
       </el-table-column>
