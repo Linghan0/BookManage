@@ -231,8 +231,14 @@ onMounted(() => {
     <!-- 添加到书架对话框 -->
     <el-dialog v-model="addDialogVisible" title="添加到书架" width="30%">
       <el-form label-width="80px">
-        <el-form-item label="数量">
-          <el-input-number v-model="bookCount" :min="1" :max="10" />
+        <el-form-item label="数量" prop="count">
+          <el-input-number 
+            v-model="bookCount" 
+            :min="1" 
+            :max="10" 
+            controls-position="right"
+          />
+          <div class="el-form-item__tip">每次最多可添加10本</div>
         </el-form-item>
       </el-form>
       <template #footer>
