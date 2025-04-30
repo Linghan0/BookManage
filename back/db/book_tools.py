@@ -403,21 +403,15 @@ def delete_book(isbn):
     """
     session = get_session()
     try:
-        # 开始事务并打印详细日志
         session.begin()
-        print(f"Starting transaction to delete book with ISBN: {isbn}")
         
         # 1. 先删除用户书籍关联
-        print("Deleting user-book associations...")
-        deleted_count = session.query(UserBook).filter_by(isbn=isbn).delete()
-        print(f"Deleted {deleted_count} user-book associations")
+        session.query(UserBook).filter_by(isbn=isbn).delete()
         
         # 2. 删除书籍本身
-        print("Deleting book record...")
         book = session.query(Book).filter_by(isbn=isbn).first()
         if not book:
             session.rollback()
-            print(f"Book with ISBN {isbn} not found - rolling back transaction")
             return {
                 'success': False,
                 'message': '书籍不存在'
@@ -425,14 +419,6 @@ def delete_book(isbn):
             
         session.delete(book)
         session.commit()
-        print(f"Successfully committed deletion of book with ISBN {isbn}")
-        
-        # 验证删除是否成功
-        book_exists = session.query(Book).filter_by(isbn=isbn).first()
-        if book_exists:
-            print("WARNING: Book still exists after deletion!")
-        else:
-            print("Book successfully deleted from database")
         
         return {
             'success': True,
@@ -465,8 +451,17 @@ def delete_book(isbn):
 
 
 # 增加书籍到用户书架
-def add_book_to_user(isbn, user_id):
-    """普通用户添加书籍到个人书库"""
+def add_book_to_user(isbn, user_id, quantity=1):
+    """添加书籍到个人书库
+    Args:
+        isbn: 书籍ISBN
+        user_id: 用户ID
+        quantity: 添加数量(默认为1)
+    Returns:
+        dict: 操作结果消息
+    Raises:
+        ValueError: 数量无效或无法获取书籍信息
+    """
     session = get_session()
     try:
         # 检查书籍是否存在
@@ -481,19 +476,28 @@ def add_book_to_user(isbn, user_id):
             create_book(book_data)
             book = session.query(Book).filter_by(isbn=isbn).first()
 
+        # 验证数量
+        if quantity <= 0:
+            raise ValueError("添加数量必须大于0")
+
         # 添加用户-书籍关联
         user_book = session.query(UserBook).filter_by(
             user_id=user_id, isbn=isbn
-        ).first()
+        ).with_for_update().first()
         
         if user_book:
-            user_book.nums += 1
+            user_book.nums += quantity
+            session.flush()
         else:
-            user_book = UserBook(user_id=user_id, isbn=isbn)
+            user_book = UserBook(user_id=user_id, isbn=isbn, nums=quantity)
             session.add(user_book)
             
         session.commit()
-        return {'message': 'Book added to user'}
+        session.refresh(user_book)
+        return {
+            'message': f'成功添加{quantity}本书籍',
+            'current_count': user_book.nums
+        }
     finally:
         session.close()
 

@@ -563,10 +563,14 @@ def manage_bookshelf(current_user, isbn):
     """管理用户书架"""
     if request.method == 'POST':
         try:
-            result = add_book_to_user(isbn, current_user.user_id)
+            data = request.get_json()
+            quantity = data.get('quantity', 1)
+            result = add_book_to_user(isbn, current_user.user_id, quantity)
             return jsonify(result), 201
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
+        except Exception as e:
+            return jsonify({'error': f'添加书籍失败: {str(e)}'}), 500
             
     elif request.method == 'DELETE':
         with DBSession() as session:
