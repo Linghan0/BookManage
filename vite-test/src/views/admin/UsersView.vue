@@ -5,30 +5,32 @@ import {
   ElTable,
   ElTableColumn,
   ElButton,
-  ElDialog,
+  // ElDialog,
   ElMessage,
-  ElFormItem,
-  ElInput,
-  ElSelect,
-  ElOption,
+  // ElFormItem,
+  // ElInput,
+  // ElSelect,
+  // ElOption,
   ElPagination
 } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
-const showDialog = ref(false)
-const currentUser = ref({
-  id: '',
-  username: '',
-  role: 'user' as 'admin' | 'user',
-  password: ''
-})
+// const showDialog = ref(false)
+// const currentUser = ref({
+//   id: '',
+//   username: '',
+//   role: 'user' as 'admin' | 'user',
+//   password: ''
+// })
 
 onMounted(async () => {
   try {
     await userStore.fetchUsers()
-  } catch (error) {
-    console.error(error)
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('获取用户列表失败:', error.message)
+    }
   }
 })
 
@@ -58,23 +60,7 @@ const handleDelete = async (user_id: string) => {
   await userStore.deleteUser(user_id)
 }
 
-const handleSubmit = async () => {
-  try {
-    if (currentUser.value.id) {
-      // TODO: Implement update user
-      ElMessage.success('更新用户成功')
-    } else {
-      await userStore.createUser({
-        username: currentUser.value.username,
-        role: currentUser.value.role,
-        password: currentUser.value.password
-      })
-    }
-    showDialog.value = false
-  } catch (error) {
-    ElMessage.error('操作失败')
-  }
-}
+
 </script>
 
 <template>

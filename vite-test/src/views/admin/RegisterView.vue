@@ -23,6 +23,10 @@
 </template>
 
 <style scoped>
+.el-form-item__label {
+    min-width: 120px;
+}
+
 .login-container {
     display: flex;
     justify-content: center;
@@ -69,7 +73,8 @@ async function sha256(message: string): Promise<string> {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-const checkUsernameAvailable = async (username: string): Promise<boolean> => {
+// 用户名可用性检查
+const checkUsernameAvailable = async (username: string) => {
     try {
         const token = userStore.token
         if (!token) {
@@ -95,28 +100,16 @@ const checkUsernameAvailable = async (username: string): Promise<boolean> => {
     }
 }
 
-const validateUsername = async (rule: any, value: any, callback: any) => {
+const validateUsername = (rule: any, value: any, callback: any) => {
     if (value === '') {
         callback(new Error('请输入用户名 / Please input the username'))
-        return
-    }
-
-    if (value.length < 4 || value.length > 20) {
+    }else if (value.length < 4 || value.length > 20) {
         callback(new Error('用户名长度必须在4-20个字符之间 / Username length must be between 4-20 characters'))
-        return
-    }
-
-    try {
-        const isAvailable = await checkUsernameAvailable(value)
-        if (!isAvailable) {
-            callback(new Error('用户名已被使用 / Username already taken'))
-        } else {
-            callback()
-        }
-    } catch (error) {
-        callback(new Error('无法验证用户名可用性 / Failed to check username availability'))
+    }else{
+        callback()
     }
 }
+
 const validatePass = (rule: any, value: any, callback: any) => {
     if (value === '') {
         callback(new Error('请输入密码 / Please input the password'))
@@ -124,6 +117,7 @@ const validatePass = (rule: any, value: any, callback: any) => {
         callback()
     }
 }
+
 const validatePass2 = (rule: any, value: any, callback: any) => {
     if (value === '') {
         callback(new Error('请输入密码 / Please input the password again'))
@@ -148,6 +142,7 @@ const rules = reactive<FormRules<typeof ruleForm>>({
 
 const router = useRouter()
 
+
 const submitForm = async (formEl: FormInstance | undefined) => {
     if (!formEl) return
     formEl.validate(async (valid) => {
@@ -161,10 +156,20 @@ const submitForm = async (formEl: FormInstance | undefined) => {
                 })
                 return
             }
-
+            // 验证用户名是否可用 element plus 的验证器是同步的，所以异步函数操作移至这里
+            const isAvailable = await checkUsernameAvailable(ruleForm.username)
+            if (!isAvailable) {
+                ElMessage({
+                    showClose: true,
+                    message: '用户名已被占用。',
+                    type: 'warning',
+                })
+                return
+            }
             try {
                 const encryptedPass = await sha256(ruleForm.pass)
                 const success = await userStore.createUser({
+                    user_id: '',
                     username: ruleForm.username,
                     password: encryptedPass,
                     role: 'user'
