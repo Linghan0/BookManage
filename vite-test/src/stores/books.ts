@@ -110,7 +110,7 @@ export const useBookStore = defineStore('books', () => {
       }
 
       // 缓存中没有则从API获取
-      const response = await axios.get(`/api/books/isbn/${isbn}`)
+      const response = await axios.get(`/api/books/${isbn}`)
       // 添加到缓存
       await dbHelper.put(response.data)
       return response.data

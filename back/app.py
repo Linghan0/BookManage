@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 import configparser
 from pathlib import Path
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 
 
@@ -172,14 +172,25 @@ def token_required(f):
                 }
             }), 401
         except Exception as e:
+            import traceback
             print(f"Token验证异常: {str(e)}")
-            return jsonify({
+            print(traceback.format_exc())
+            
+            # 统一错误响应格式
+            error_data = {
                 'error': {
                     'type': 'auth_error',
-                    'message': 'Token验证失败',
-                    'code': 'token_validation_failed'
+                    'code': 'token_validation_failed',
+                    'message': 'Token验证失败'
                 }
-            }), 401
+            }
+            
+            # 添加调试信息（仅开发环境）
+            if app.debug:
+                error_data['error']['details'] = str(e)
+                error_data['error']['traceback'] = traceback.format_exc()
+            
+            return jsonify(error_data), 401
             
     return decorated
 
@@ -516,27 +527,6 @@ def manage_user(current_user, user_id):
             session.commit()
             return jsonify({'message': '用户删除成功'})
 
-
-
-@app.route('/api/bookshelf', methods=['GET'])
-@token_required
-def get_user_books(current_user):
-    """获取用户书架"""
-    # 获取分页参数，默认为第1页，每页20条
-    page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 20))
-    
-    # 获取分页数据和总数
-    books = get_user_books(current_user.user_id, page=page, per_page=per_page)
-    total = get_user_books_count(current_user.user_id)
-    
-    return jsonify({
-        'items': books,
-        'total': total,
-        'page': page,
-        'per_page': per_page
-    })
-
 @app.route('/api/books/search', methods=['GET'])
 def search_books():
     search_field = request.args.get('field')
@@ -556,6 +546,15 @@ def search_books():
             'error': 'Internal server error',
             'message': str(e)
         }), 500
+
+@app.route('/api/bookshelf', methods=['GET'])
+@token_required
+def get_bookshelf(current_user):
+    """获取用户书架"""
+    # 获取用户所有书籍数据并转换为字典
+    bookshelf = get_user_books(user_id=current_user.user_id)
+    return jsonify(bookshelf), 201
+
 
 @app.route('/api/bookshelf/<isbn>', methods=['POST', 'DELETE'])
 @token_required
@@ -578,6 +577,7 @@ def manage_bookshelf(current_user, isbn):
             if not result:
                 return jsonify({'error': 'Book not found in your shelf'}), 404
             return jsonify(result)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

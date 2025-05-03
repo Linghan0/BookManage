@@ -131,16 +131,34 @@ export const useUserStore = defineStore('user', () => {
       })
       console.log('Login response:', response)
       console.log('User data:', response.data)
+      
+      // 验证token是否存在
+      if (!response.data.token) {
+        throw new Error('登录响应中未包含token')
+      }
+
+      // 设置用户信息和token
       user.value = {
         user_id: response.data.user_id.toString(),
         username: response.data.username,
         role: response.data.role
       }
       isAuthenticated.value = true
+      
+      // 确保token保存到localStorage和axios headers
       setToken(response.data.token)
+      
+      // 验证token是否设置成功
+      if (!localStorage.getItem('token') || !axios.defaults.headers.common['Authorization']) {
+        throw new Error('token设置失败')
+      }
+
       ElMessage.success('登录成功')
       return true
     } catch (error: unknown) {
+      console.error('登录失败:', error)
+      // 登录失败时清除可能存在的token
+      clearToken()
       ElMessage.error(getErrorMessage(error))
       return false
     }
@@ -258,6 +276,7 @@ export const useUserStore = defineStore('user', () => {
     createUser,
     deleteUser,
     setToken,
-    clearToken
+    clearToken,
+    init
   }
 })

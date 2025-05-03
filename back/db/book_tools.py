@@ -164,31 +164,19 @@ def get_user_books_count(user_id):
         session.close()
 
 # 获取用户书架中的书籍
-def get_user_books(user_id, page=None, per_page=None):
-    """获取用户书架中的书籍(支持分页)
+def get_user_books(user_id):
+    """获取user_book表中该用户的 书籍isbn-数量 列表
     Args:
         user_id: 用户ID
-        page: 页码(从1开始)
-        per_page: 每页数量
+        isbn: 书籍ISBN号
+        nums: 所拥有该书籍数量
     Returns:
         list: 用户书籍列表，每条数据保持原有结构
     """
     session = get_session()
     try:
         query = session.query(UserBook).filter_by(user_id=user_id)
-        
-        # 应用分页
-        if page is not None and per_page is not None:
-            offset = (page - 1) * per_page
-            query = query.offset(offset).limit(per_page)
-            
-        user_books = query.all()
-        return [{
-            'isbn': ub.book.isbn,
-            'title': ub.book.title,
-            'author': ub.book.author,
-            'nums': ub.nums
-        } for ub in user_books]
+        return [{'isbn': ub.isbn, 'nums': ub.nums} for ub in query.all()]
     finally:
         session.close()
 
