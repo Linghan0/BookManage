@@ -52,33 +52,25 @@ export const useUserStore = defineStore('user', () => {
   }
 
   const init = async () => {
-    console.log('检查本地token...')
     const storedToken = localStorage.getItem('token')
     token.value = storedToken
-    console.log('获取到的token:', storedToken)
     
     if (storedToken) {
-      console.log('设置请求头Authorization...')
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
       
       try {
-        console.log('调用验证接口...')
         const response = await axios.get('/api/validate')
-        console.log('验证接口响应:', response.data)
-        
-      user.value = {
-        user_id: response.data.user_id.toString(),
-        username: response.data.username,
-        role: response.data.role
-      }
+        user.value = {
+          user_id: response.data.user_id.toString(),
+          username: response.data.username,
+          role: response.data.role
+        }
         isAuthenticated.value = true
         console.log('登录状态验证成功')
       } catch (error) {
         console.error('验证失败:', error)
         clearToken()
       }
-    } else {
-      console.log('未找到本地token')
     }
   }
 
@@ -123,14 +115,11 @@ export const useUserStore = defineStore('user', () => {
 
   const login = async (username: string, password: string) => {
     try {
-      console.log('Making request to:', axios.defaults.baseURL + '/api/login')
       const hashedPassword = await sha256(password)
       const response = await axios.post('/api/login', { 
         username, 
         password: hashedPassword 
       })
-      console.log('Login response:', response)
-      console.log('User data:', response.data)
       
       // 验证token是否存在
       if (!response.data.token) {

@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useBookStore } from '@/stores/books'
 import { useShelfCacheStore } from '@/stores/shelfCache'
+import UserBookDetailView from './UserBookDetailView.vue'
 
-const router = useRouter()
+const detailVisible = ref(false)
+const currentBookIsbn = ref('')
 const loading = ref(false)
 const userBooks = ref<any[]>([])
 const bookStore = useBookStore()
 const shelfCacheStore = useShelfCacheStore()
+const bookDetailDialog = ref()
 
 const fetchUserBooks = async () => {
   try {
@@ -38,14 +40,13 @@ const fetchUserBooks = async () => {
             isbn: item.isbn,
             title: '书籍信息缺失',
             author: '',
-            quantity: item.nums // 使用nums
+            quantity: item.nums
           }
         }
 
         return {
           ...book,
-          quantity: item.nums, // 使用nums
-          // 确保所有字段都有默认值
+          quantity: item.nums,
           title: book.title || '无书名',
           author: book.author || '未知作者',
           isbn: book.isbn || item.isbn
@@ -66,11 +67,7 @@ const fetchUserBooks = async () => {
     userBooks.value = booksResults
     } catch (error: any) {
       console.error('获取用户书籍失败:', error)
-      if (error.response?.status === 401) {
-        ElMessage.error('登录验证未通过')
-
-      } else if (error.response?.status === 404) {
-        // 书架为空是正常情况，不显示错误
+      if (error.response?.status === 404) {
         userBooks.value = []
       } else {
         ElMessage.error('获取用户书籍失败: ' + (error.response?.data?.message || error.message))
@@ -81,19 +78,18 @@ const fetchUserBooks = async () => {
 }
 
 const viewBookDetail = (isbn: string) => {
-  router.push(`/userbooks/${isbn}`)
+  currentBookIsbn.value = isbn
+  bookDetailDialog.value?.openDialog()
 }
 
 let cleanupRefresh: () => void
 
 onMounted(() => {
   fetchUserBooks()
-  // 启动自动刷新
   cleanupRefresh = shelfCacheStore.startAutoRefresh()
 })
 
 onUnmounted(() => {
-  // 组件卸载时清理定时器
   cleanupRefresh?.()
 })
 </script>
@@ -106,7 +102,7 @@ onUnmounted(() => {
     <el-main>
       <el-table 
         :data="userBooks" 
-        style="width: 100%; min-width: 800px; max-width: 1400px"
+        style="width: 100%; min-width: 600px; max-width: 1400px"
         v-loading="loading"
       >
         <el-table-column prop="title" label="书名" />
@@ -121,6 +117,12 @@ onUnmounted(() => {
           </template>
         </el-table-column>
       </el-table>
+      
+      <UserBookDetailView 
+        v-model:visible="detailVisible"
+        :isbn="currentBookIsbn"
+        ref="bookDetailDialog"
+      />
     </el-main>
   </el-container>
 </template>

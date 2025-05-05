@@ -7,8 +7,10 @@ from datetime import datetime, timedelta
 from functools import wraps
 import configparser
 from pathlib import Path
-from flask import Flask, jsonify, request, Response
+from flask import Flask, jsonify, request, Response, send_file, send_from_directory
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
+import os
 
 
 from config import DB_PATH, SECRET_KEY
@@ -35,8 +37,17 @@ from db.user_tools import authenticate_user, get_user_by_id, register_user, get_
 sys.path.append(str(Path(__file__).parent.parent))
 
 
+# 配置封面图片存储路径
+IMG_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+COVER_FOLDER = os.path.join(IMG_BASE_DIR, 'src', 'img', 'book_covers')
+DEFAULT_COVER = os.path.join(IMG_BASE_DIR, 'src', 'img', 'default_cover.jpg')
+
+os.makedirs(COVER_FOLDER, exist_ok=True)
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
+app.config['COVER_FOLDER'] = COVER_FOLDER
+app.config['DEFAULT_COVER'] = DEFAULT_COVER
 
 
 
@@ -578,6 +589,46 @@ def manage_bookshelf(current_user, isbn):
                 return jsonify({'error': 'Book not found in your shelf'}), 404
             return jsonify(result)
 
+
+# 封面图片上传API
+@app.route('/api/img/cover/upload', methods=['POST'])
+@token_required
+def upload_image(current_user):
+    """上传图片"""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+    if file:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['COVER_FOLDER'], filename)
+        file.save(filepath)
+        return jsonify({'url': f'/api/img/cover/{filename}'}), 201
+
+# 图片访问API
+@app.route('/api/img/cover/<filename>')
+def get_image(filename):
+    """获取图片"""
+    try:
+        # 构建文件路径
+        filepath = os.path.join(app.config['COVER_FOLDER'], filename)
+
+        # 检查文件是否存在
+        if not os.path.exists(filepath):
+            raise FileNotFoundError
+        
+        # 首先尝试返回请求的封面
+        return send_from_directory(app.config['COVER_FOLDER'], filename)
+    except FileNotFoundError:
+        # 确保默认封面文件存在
+        if os.path.exists(app.config['DEFAULT_COVER']):
+            print(f"返回默认封面: {app.config['DEFAULT_COVER']}")
+            return send_file(app.config['DEFAULT_COVER'], mimetype='image/jpeg')
+        # 如果默认封面也不存在，返回404
+        return jsonify({'error': 'Default cover not found'}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)

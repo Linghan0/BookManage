@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from '@/utils/http'
+import UserBookDetailView from './UserBookDetailView.vue'
 import { ElMessage } from 'element-plus'
 
 // 类型守卫函数
@@ -37,8 +38,16 @@ const pagination = ref({
 
 // 添加到书架相关状态
 const addDialogVisible = ref(false)
+const detailVisible = ref(false)
 const currentIsbn = ref('')
+const currentBookIsbn = ref('')
 const bookCount = ref(1)
+const bookDetailDialog = ref()
+
+const viewBookDetail = (isbn: string) => {
+  currentBookIsbn.value = isbn
+  bookDetailDialog.value?.openDialog()
+}
 
 // 获取书籍列表
 const fetchBooks = async () => {
@@ -214,14 +223,24 @@ onMounted(() => {
       <el-table-column prop="page" label="页数" width="100" />
       <el-table-column prop="cover_url" label="封面链接" width="180" show-overflow-tooltip />
       <el-table-column prop="description" label="描述" width="200" show-overflow-tooltip />
-      <el-table-column label="操作" width="150" fixed="right">
+      <el-table-column label="操作" width="180" fixed="right">
         <template #default="{row}">
-          <el-button type="primary" size="small" @click="showAddDialog(row.isbn)">
+          <el-button size="small" @click="showAddDialog(row.isbn)">
             添加到书架
+          </el-button>
+          <el-button type="primary" size="small" @click="viewBookDetail(row.isbn)">
+            详情
           </el-button>
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 书籍详情弹窗 -->
+    <UserBookDetailView 
+      v-model:visible="detailVisible"
+      :isbn="currentBookIsbn"
+      ref="bookDetailDialog"
+    />
 
     <!-- 分页 -->
     <el-pagination class="pagination" v-model:current-page="pagination.page" :page-size="pagination.pageSize"
