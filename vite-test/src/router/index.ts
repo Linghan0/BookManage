@@ -3,6 +3,7 @@ import HomeView from '@/views/HomeView.vue'
 import BooksView from '@/views/BooksView.vue'
 import LoginView from '@/views/LoginView.vue'
 import UserBooksView from '@/views/UserBooksView.vue'
+import TestView from '@/views/TestView.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -50,6 +51,11 @@ const router = createRouter({
       path: '/admin/users/edit/:id',
       name: 'admin-edit-user',
       component: () => import('@/views/admin/EditUserView.vue')
+    },
+    {
+      path: '/test',
+      name: 'test',
+      component: TestView
     }
   ]
 })

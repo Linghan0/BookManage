@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useBookStore } from '@/stores/books'
 import { useShelfCacheStore } from '@/stores/shelfCache'
 import UserBookDetailView from './UserBookDetailView.vue'
 
+const router = useRouter()
 const detailVisible = ref(false)
 const currentBookIsbn = ref('')
 const loading = ref(false)
@@ -95,36 +97,35 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <el-container class="user-books-view">
-    <el-header>
-      <h1>我的书架</h1>
-    </el-header>
-    <el-main>
-      <el-table 
-        :data="userBooks" 
-        style="width: 100%; min-width: 600px; max-width: 1400px"
-        v-loading="loading"
-      >
-        <el-table-column prop="title" label="书名" />
-        <el-table-column prop="isbn" label="ISBN" />
-        <el-table-column prop="author" label="作者" />
-        <el-table-column prop="quantity" label="数量" align="center" width="120" />
-        <el-table-column label="操作" align="center" fixed="right" width="150">
-          <template #default="scope">
-            <el-button type="primary" size="small" @click="viewBookDetail(scope.row.isbn)">
-              详情
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      
-      <UserBookDetailView 
-        v-model:visible="detailVisible"
-        :isbn="currentBookIsbn"
-        ref="bookDetailDialog"
-      />
-    </el-main>
-  </el-container>
+  <div class="user-books-view">
+    <!-- 标题和返回 -->
+    <div class="header-container">
+      <el-page-header @back="router.go(-1)">
+        <template #content>
+          <h1>个人书架</h1>
+        </template>
+      </el-page-header>
+    </div>
+    
+    <!-- 内容区域 -->
+    <div class="content-container">
+      <el-table :data="userBooks" style="width: 100%; min-width: 600px; max-width: 1400px" v-loading="loading">
+          <el-table-column prop="title" label="书名" />
+          <el-table-column prop="isbn" label="ISBN" />
+          <el-table-column prop="author" label="作者" />
+          <el-table-column prop="quantity" label="数量" align="center" width="120" />
+          <el-table-column label="操作" align="center" fixed="right" width="150">
+            <template #default="scope">
+              <el-button type="primary" size="small" @click="viewBookDetail(scope.row.isbn)">
+                详情
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+      <UserBookDetailView v-model:visible="detailVisible" :isbn="currentBookIsbn" ref="bookDetailDialog" />
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -132,14 +133,11 @@ onUnmounted(() => {
   padding: 20px;
 }
 
-.el-header {
-  text-align: center;
-  padding: 0;
-  height: auto;
+.header-container {
   margin-bottom: 20px;
 }
 
-.el-main {
-  padding: 0;
+.content-container {
+  margin-top: 20px;
 }
 </style>

@@ -210,13 +210,13 @@ onMounted(() => {
 <template>
   <div class="admin-books-view">
     <!-- 标题 -->
-    <el-page-header @back="$router.go(-1)">
-      <template #content>
-        <div class="page-title">
-          <span>图书后台管理</span>
-        </div>
-      </template>
-    </el-page-header>
+    <div class="page-header-container">
+      <el-page-header @back="$router.go(-1)">
+        <template #content>
+          <h1 class="page-title">图书后台管理</h1>
+        </template>
+      </el-page-header>
+    </div>
 
     <!-- 搜索栏 -->
     <div class="search-container">
@@ -238,24 +238,24 @@ onMounted(() => {
 
     <!-- 书籍表格 -->
     <el-table :data="tableData" height="500" style="width: 100%" v-loading="loading">
-      <el-table-column prop="isbn" label="ISBN" width="150" />
-      <el-table-column prop="title" label="书名" width="200" show-overflow-tooltip />
-      <el-table-column prop="author" label="作者" width="150" />
-      <el-table-column prop="translator" label="译者" width="150" />
-      <el-table-column prop="genre" label="类型" width="120" />
-      <el-table-column prop="country" label="国家" width="120" />
-      <el-table-column prop="era" label="年代" width="120" />
-      <el-table-column prop="opac_nlc_class" label="中图分类号" width="150" />
-      <el-table-column prop="publisher" label="出版社" width="180" show-overflow-tooltip>
+      <el-table-column prop="isbn" label="ISBN" min-width="150" />
+      <el-table-column prop="title" label="书名" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="author" label="作者" min-width="150" />
+      <el-table-column prop="translator" label="译者" min-width="150" />
+      <el-table-column prop="genre" label="类型" min-width="120" />
+      <el-table-column prop="country" label="国家" min-width="120" />
+      <el-table-column prop="era" label="年代" min-width="120" />
+      <el-table-column prop="opac_nlc_class" label="中图分类号" min-width="150" />
+      <el-table-column prop="publisher" label="出版社" min-width="180" show-overflow-tooltip>
         <template #default="{ row }">
           {{ row.publisher || '未知' }}
         </template>
       </el-table-column>
-      <el-table-column prop="publish_year" label="出版年" width="100" />
-      <el-table-column prop="page" label="页数" width="100" />
-      <el-table-column prop="cover_url" label="封面链接" width="180" show-overflow-tooltip />
-      <el-table-column prop="description" label="描述" width="200" show-overflow-tooltip />
-      <el-table-column label="操作" width="180" fixed="right">
+      <el-table-column prop="publish_year" label="出版年" min-width="100" />
+      <el-table-column prop="page" label="页数" min-width="100" />
+      <el-table-column prop="cover_url" label="封面链接" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+      <el-table-column label="操作" width="140" fixed="right" align="center">
         <template #default="{ row }">
           <el-button type="primary" size="small" @click="handleEdit(row)">
             编辑
@@ -328,6 +328,18 @@ onMounted(() => {
 <style scoped>
 .books-view {
   padding: 20px;
+}
+
+.page-header-container {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 500;
+  color: #303133;
 }
 
 .search-container {

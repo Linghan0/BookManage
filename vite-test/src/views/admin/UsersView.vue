@@ -1,28 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ElTable,
   ElTableColumn,
   ElButton,
-  // ElDialog,
   ElMessage,
-  // ElFormItem,
-  // ElInput,
-  // ElSelect,
-  // ElOption,
   ElPagination
 } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
-// const showDialog = ref(false)
-// const currentUser = ref({
-//   id: '',
-//   username: '',
-//   role: 'user' as 'admin' | 'user',
-//   password: ''
-// })
+
 
 onMounted(async () => {
   try {
@@ -65,8 +54,12 @@ const handleDelete = async (user_id: string) => {
 
 <template>
   <div class="user-management">
-    <div class="header">
-      <h2>用户管理</h2>
+    <div class="page-header-container">
+      <el-page-header @back="router.go(-1)">
+        <template #content>
+          <h1 class="page-title">用户管理</h1>
+        </template>
+      </el-page-header>
       <div>
         <el-button type="primary" @click="router.push('/admin/register')">
           添加用户
@@ -74,11 +67,11 @@ const handleDelete = async (user_id: string) => {
       </div>
     </div>
 
-    <el-table :data="userStore.users" border style="width: 100%">
-      <el-table-column prop="user_id" label="ID" width="120" />
+    <el-table :data="userStore.users" border style="width: 100%; min-width: 600px; max-width: 1200px">
+      <el-table-column prop="user_id" label="ID" />
       <el-table-column prop="username" label="用户名" />
       <el-table-column prop="role" label="角色" />
-      <el-table-column label="操作" width="180">
+      <el-table-column label="操作" width="180" align="center">
         <template #default="{ row }">
           <el-button size="small" @click="handleEdit(row.user_id)">编辑</el-button>
           <el-button size="small" type="danger" :disabled="row.role === 'admin'" @click="handleDelete(row.user_id)">
@@ -99,6 +92,21 @@ const handleDelete = async (user_id: string) => {
 <style scoped>
 .user-management {
   padding: 20px;
+}
+
+.page-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 500;
+  color: #303133;
 }
 
 .header {
