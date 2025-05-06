@@ -96,6 +96,7 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
+import { AxiosError } from 'axios';
 import { useRoute, useRouter } from 'vue-router'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
@@ -122,7 +123,7 @@ const form = reactive({
     showPassword: false
 })
 
-const validatePass = (rule: any, value: string, callback: any) => {
+const validatePass = (_rule: any, value: string, callback: any) => {
     if (value !== form.password) {
         callback(new Error('两次输入的密码不一致!'))
     } else {
@@ -208,7 +209,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
                 }
 
                 // 调用API更新用户
-                const response = await axios.put(`/api/users/${form.id}`, updateData, {
+                await axios.put(`/api/users/${form.id}`, updateData, {
                   headers: {
                     'Authorization': `Bearer ${userStore.token}`,
                     'Content-Type': 'application/json'
@@ -222,8 +223,13 @@ const submitForm = async (formEl: FormInstance | undefined) => {
                 router.push('/admin/users')
             } catch (error) {
                 console.error('更新用户失败:', error)
-                const errorMsg = error.response?.data?.message || '更新用户信息失败，请稍后重试'
-                ElMessage.error(errorMsg)
+                if (error instanceof AxiosError) {
+                    const axiosError = error as AxiosError<any>
+                    const errorMsg = axiosError.response?.data?.message || '更新用户信息失败，请稍后重试'
+                    ElMessage.error(errorMsg)
+                } else {
+                    ElMessage.error('更新用户信息失败，请稍后重试')
+                }
             }
         }
     })

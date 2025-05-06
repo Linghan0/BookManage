@@ -12,7 +12,7 @@ const handleSelect = (key: '1' | '2' | '3' | '4-1' | '4-2' | '5' | '6') => {
   const routes = {
     '1': '/',
     '2': '/books',
-    '3': '/userbooks',
+    '3': '/bookshelf',
     '4-1': '/admin/books',
     '4-2': '/admin/users',
     '5': '/login',

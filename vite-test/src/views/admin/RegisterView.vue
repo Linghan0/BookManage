@@ -100,7 +100,7 @@ const checkUsernameAvailable = async (username: string) => {
     }
 }
 
-const validateUsername = (rule: any, value: any, callback: any) => {
+const validateUsername = (_rule: any, value: any, callback: any) => {
     if (value === '') {
         callback(new Error('请输入用户名 / Please input the username'))
     }else if (value.length < 4 || value.length > 20) {
@@ -110,7 +110,7 @@ const validateUsername = (rule: any, value: any, callback: any) => {
     }
 }
 
-const validatePass = (rule: any, value: any, callback: any) => {
+const validatePass = (_rule: any, value: any, callback: any) => {
     if (value === '') {
         callback(new Error('请输入密码 / Please input the password'))
     } else {
@@ -118,7 +118,7 @@ const validatePass = (rule: any, value: any, callback: any) => {
     }
 }
 
-const validatePass2 = (rule: any, value: any, callback: any) => {
+const validatePass2 = (_rule: any, value: any, callback: any) => {
     if (value === '') {
         callback(new Error('请输入密码 / Please input the password again'))
     } else if (value !== ruleForm.pass) {

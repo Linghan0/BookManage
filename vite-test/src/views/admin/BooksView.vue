@@ -332,7 +332,9 @@ onMounted(() => {
 
 .page-header-container {
   margin-bottom: 20px;
-  padding-bottom: 15px;
+  padding: 15px;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 4px;
   border-bottom: 1px solid #ebeef5;
 }
 
@@ -342,13 +344,20 @@ onMounted(() => {
   color: #303133;
 }
 
-.search-container {
-  margin-bottom: 20px;
+.search-container,
+.el-table,
+.pagination {
+  background-color: rgba(255, 255, 255, 0.85);
+  padding: 15px;
+  border-radius: 4px;
+  margin: 0 auto 15px;
+  max-width: 1400px;
 }
 
 .search-form {
   display: flex;
   align-items: center;
+  justify-content: center;
 
   :deep(.el-select) {
     min-width: 120px;
@@ -357,6 +366,14 @@ onMounted(() => {
   :deep(.el-input) {
     min-width: 200px;
   }
+}
+
+.el-table {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.el-table th {
+  background-color: rgba(245, 245, 245, 0.9);
 }
 
 .pagination {

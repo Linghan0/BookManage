@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from '@/utils/http'
-import UserBookDetailView from './UserBookDetailView.vue'
+import BookDetailView from './BookDetailView.vue'
 import { ElMessage } from 'element-plus'
 
 // 类型守卫函数
@@ -230,7 +230,7 @@ onMounted(() => {
     </el-table>
 
     <!-- 书籍详情弹窗 -->
-    <UserBookDetailView 
+    <BookDetailView
       v-model:visible="detailVisible"
       :isbn="currentBookIsbn"
       ref="bookDetailDialog"
@@ -268,8 +268,44 @@ onMounted(() => {
 }
 
 .page-header-container {
+  background-color: rgba(255, 255, 255, 0.85);
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.search-container,
+.el-table,
+.pagination {
+  background-color: rgba(255, 255, 255, 0.85);
+  padding: 15px;
+  border-radius: 4px;
+  margin: 0 auto 15px;
+  max-width: 1400px;
+  text-align: center;
+}
+
+.search-form {
+  justify-content: center;
+}
+
+.page-title {
+  color: #333;
+}
+
+.el-table {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.el-table th {
+  background-color: rgba(245, 245, 245, 0.9);
+}
+
+.page-header-container {
   margin-bottom: 20px;
-  padding-bottom: 15px;
+  padding: 15px;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 4px;
   border-bottom: 1px solid #ebeef5;
 }
 

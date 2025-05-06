@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 import BooksView from '@/views/BooksView.vue'
 import LoginView from '@/views/LoginView.vue'
-import UserBooksView from '@/views/UserBooksView.vue'
 import TestView from '@/views/TestView.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,14 +17,14 @@ const router = createRouter({
       component: BooksView
     },
     {
-      path: '/userbooks',
-      name: 'userbooks',
-      component: UserBooksView
+      path: '/bookshelf',
+      name: 'bookshelf',
+      component: () => import('@/views/UserBooksView.vue')
     },
     {
-      path: '/userbooks/:isbn',
-      name: 'userbook-detail',
-      component: () => import('@/views/UserBookDetailView.vue')
+      path: '/books/:isbn',
+      name: 'book-detail',
+      component: () => import('@/views/BookDetailView.vue')
     },
     {
       path: '/login',
@@ -64,8 +63,7 @@ import { useUserStore } from '@/stores/user'
 
 // 需要认证的路由
 const authRoutes = [
-  '/userbooks',
-  '/userbooks/:isbn',
+  '/books/:isbn',
   '/admin/books',
   '/admin/users',
   '/admin/register',

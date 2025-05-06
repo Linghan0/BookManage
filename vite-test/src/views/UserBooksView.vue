@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useBookStore } from '@/stores/books'
 import { useShelfCacheStore } from '@/stores/shelfCache'
-import UserBookDetailView from './UserBookDetailView.vue'
+import BookDetailView from './BookDetailView.vue'
 
 const router = useRouter()
 const detailVisible = ref(false)
@@ -123,7 +123,7 @@ onUnmounted(() => {
           </el-table-column>
         </el-table>
 
-      <UserBookDetailView v-model:visible="detailVisible" :isbn="currentBookIsbn" ref="bookDetailDialog" />
+      <BookDetailView v-model:visible="detailVisible" :isbn="currentBookIsbn" ref="bookDetailDialog" />
     </div>
   </div>
 </template>
@@ -135,9 +135,25 @@ onUnmounted(() => {
 
 .header-container {
   margin-bottom: 20px;
+  padding: 15px;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 4px;
+  border-bottom: 1px solid #ebeef5;
 }
 
 .content-container {
-  margin-top: 20px;
+  margin: 20px auto;
+  max-width: 1400px;
+  background-color: rgba(255, 255, 255, 0.85);
+  padding: 15px;
+  border-radius: 4px;
+}
+
+.el-table {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.el-table th {
+  background-color: rgba(245, 245, 245, 0.9);
 }
 </style>

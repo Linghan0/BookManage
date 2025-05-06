@@ -30,7 +30,7 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: url('@/assets/vue.svg') center/cover no-repeat;
+
 }
 
 .login-form {
@@ -60,7 +60,7 @@ const userStore = useUserStore()
 const ruleFormRef = ref<FormInstance>()
 const loading = ref(false)
 
-const validateUsername = (rule: any, value: any, callback: any) => {
+const validateUsername = (_rule: any, value: any, callback: any) => {
   if (!value) {
     callback(new Error('请输入用户名'))
   } else if (value.length < 3) {
@@ -70,7 +70,7 @@ const validateUsername = (rule: any, value: any, callback: any) => {
   }
 }
 
-const validatePassword = (rule: any, value: any, callback: any) => {
+const validatePassword = (_rule: any, value: any, callback: any) => {
   if (!value) {
     callback(new Error('请输入密码'))
   } else if (value.length < 6) {

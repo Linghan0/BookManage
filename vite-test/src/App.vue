@@ -46,11 +46,17 @@ onUnmounted(() => {
 
 <style scoped>
 .app-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  min-height: 100vh;
   transition: background-image 0.5s ease;
+  margin: 0;
+  padding: 0;
 }
 
 .app-container::before {

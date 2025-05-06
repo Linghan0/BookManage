@@ -99,7 +99,9 @@ const handleDelete = async (user_id: string) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  padding-bottom: 15px;
+  padding: 15px;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 4px;
   border-bottom: 1px solid #ebeef5;
 }
 
@@ -109,14 +111,22 @@ const handleDelete = async (user_id: string) => {
   color: #303133;
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
+.el-table {
+  background-color: rgba(255, 255, 255, 0.9);
+  margin: 0 auto;
+  max-width: 1200px;
+}
+
+.el-table th {
+  background-color: rgba(245, 245, 245, 0.9);
 }
 
 .pagination {
-  margin-top: 20px;
+  margin: 20px auto 0;
+  max-width: 1200px;
   justify-content: center;
+  background-color: rgba(255, 255, 255, 0.85);
+  padding: 15px;
+  border-radius: 4px;
 }
 </style>
