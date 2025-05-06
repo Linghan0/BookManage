@@ -11,9 +11,11 @@ from flask import Flask, jsonify, request, Response, send_file, send_from_direct
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
+from dotenv import load_dotenv
 
 
-from config import DB_PATH, SECRET_KEY
+# 加载环境变量
+load_dotenv('.env.production')
 from models import User, Book
 from db.init_db import init_database
 from db import book_tools
@@ -45,7 +47,7 @@ DEFAULT_COVER = os.path.join(IMG_BASE_DIR, 'src', 'img', 'default_cover.jpg')
 os.makedirs(COVER_FOLDER, exist_ok=True)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = SECRET_KEY
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['COVER_FOLDER'] = COVER_FOLDER
 app.config['DEFAULT_COVER'] = DEFAULT_COVER
 
@@ -64,7 +66,8 @@ else:
 # 检查是否需要初始化
 if config.getboolean('INIT', 'initialized', fallback=False) == False:
     print("首次启动，正在初始化数据库...")
-    if not init_database(str(DB_PATH)):
+    db_path = os.getenv('DATABASE_URL', 'sqlite:///back/db/book_manage.db').replace('sqlite:///', '')
+    if not init_database(db_path):
         print("数据库初始化失败!")
         exit(1)
     # 更新初始化状态
@@ -78,8 +81,9 @@ else:
 # 全局CORS配置
 @app.after_request
 def after_request(response):
+    allowed_origins = os.getenv('ALLOWED_ORIGINS', '').split(',')
     origin = request.headers.get('Origin')
-    if origin and origin.startswith('http://localhost'):
+    if origin and origin in allowed_origins:
         response.headers.add('Access-Control-Allow-Origin', origin)
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH')
