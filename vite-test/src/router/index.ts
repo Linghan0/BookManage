@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 import BooksView from '@/views/BooksView.vue'
 import LoginView from '@/views/LoginView.vue'
-import TestView from '@/views/TestView.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -52,9 +51,9 @@ const router = createRouter({
       component: () => import('@/views/admin/EditUserView.vue')
     },
     {
-      path: '/test',
-      name: 'test',
-      component: TestView
+      path: '/scan-book',
+      name: 'scan-book',
+      component: () => import('@/views/ScanBookView.vue')
     }
   ]
 })

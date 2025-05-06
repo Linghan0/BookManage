@@ -136,6 +136,23 @@ export const useBookStore = defineStore('books', () => {
     }
   }
 
+  // 搜索书籍
+  const searchBooks = async (params: { [key: string]: string }) => {
+    try {
+      const { data } = await axios.get('/api/books/search', {
+        params: {
+          ...params,
+          page: 1,
+          size: 20
+        }
+      })
+      return data
+    } catch (error) {
+      ElMessage.error('搜索书籍失败')
+      throw error
+    }
+  }
+
   return {
     books,
     pagination,
@@ -143,6 +160,7 @@ export const useBookStore = defineStore('books', () => {
     fetchBooks,
     getBookByIsbn,
     loadFromCache,
-    deleteBook
+    deleteBook,
+    searchBooks
   }
 })

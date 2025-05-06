@@ -210,12 +210,15 @@ onMounted(() => {
 <template>
   <div class="admin-books-view">
     <!-- 标题 -->
-    <div class="page-header-container">
+    <div class="page-header-container" style="display: flex; justify-content: space-between; align-items: center;">
       <el-page-header @back="$router.go(-1)">
         <template #content>
           <h1 class="page-title">图书后台管理</h1>
         </template>
       </el-page-header>
+      <el-button type="primary" @click="$router.push('/scan-book')" style="margin-right: 10px;">
+        新增图书
+      </el-button>
     </div>
 
     <!-- 搜索栏 -->

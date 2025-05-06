@@ -168,10 +168,16 @@ const fetchBookDetail = async (isbn: string) => {
   }
 }
 
-const openDialog = () => {
+const openDialog = async () => {
   dialogVisible.value = true
-  if (props.isbn) {
-    fetchBookDetail(props.isbn)
+  try {
+    // 强制刷新书架数据
+    await shelfCacheStore.fetchShelfItems(true)
+    if (props.isbn) {
+      await fetchBookDetail(props.isbn)
+    }
+  } catch (error) {
+    console.error('初始化数据失败:', error)
   }
 }
 
