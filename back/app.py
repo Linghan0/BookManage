@@ -34,11 +34,6 @@ from db.book_tools import (
 from db import DBSession
 from db.user_tools import authenticate_user, get_user_by_id, register_user, get_all_users, update_user
 
-
-# 添加项目根目录到Python路径
-sys.path.append(str(Path(__file__).parent.parent))
-
-
 # 配置封面图片存储路径
 IMG_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COVER_FOLDER = os.path.join(IMG_BASE_DIR, 'src', 'img', 'book_covers')
@@ -66,7 +61,7 @@ else:
 # 检查是否需要初始化
 if config.getboolean('INIT', 'initialized', fallback=False) == False:
     print("首次启动，正在初始化数据库...")
-    db_path = os.getenv('DATABASE_URL', 'sqlite:///back/db/book_manage.db').replace('sqlite:///', '')
+    db_path = os.getenv('DATABASE_URL', 'sqlite://db/book_manage.db').replace('sqlite://', '')
     if not init_database(db_path):
         print("数据库初始化失败!")
         exit(1)
@@ -81,7 +76,10 @@ else:
 # 全局CORS配置
 @app.after_request
 def after_request(response):
-    allowed_origins = os.getenv('ALLOWED_ORIGINS', '').split(',')
+    allowed_origins_str = os.getenv('ALLOWED_ORIGINS')
+    if not allowed_origins_str:
+        raise ValueError('ALLOWED_ORIGINS must be configured in .env file')
+    allowed_origins = allowed_origins_str.split(',')
     origin = request.headers.get('Origin')
     if origin and origin in allowed_origins:
         response.headers.add('Access-Control-Allow-Origin', origin)

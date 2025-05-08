@@ -18,7 +18,7 @@ sudo apt install -y nodejs npm python3 python3-pip nginx sqlite3
 
 ### 2. 克隆代码
 ```bash
-git clone https://your-repo-url/BookManage.git #???
+git clone https://github.com/Linghan0/BookManage.git // X
 cd BookManage
 ```
 

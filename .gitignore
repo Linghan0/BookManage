@@ -146,13 +146,25 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+.env.production
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# 后端配置文件
+config.ini
+
+back/.env.production
+
+
+# 前端配置文件
+vite-test/.env.production
+
+# nginx 配置文件
+nginx.conf
 
 # Spyder project settings
 .spyderproject

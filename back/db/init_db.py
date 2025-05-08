@@ -1,19 +1,21 @@
+import os
 import sqlite3
 import sys
 from pathlib import Path
 import hashlib
-# 添加项目根目录到Python路径
-sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from config import DB_PATH, ADMIN_USERNAME, ADMIN_PASSWORD
+
 from db.book_tools import create_book_isbn
 
 
 def init_database(db_path=None):
     """初始化数据库"""
-    # 如果没有传入路径，使用配置中的默认路径
+    # 如果没有传入路径，从环境变量获取
     if db_path is None:
-        db_path = str(DB_PATH)
+        db_url = os.getenv('DATABASE_URL')
+        if not db_url:
+            raise ValueError('DATABASE_URL must be configured in .env file')
+        db_path = db_url.replace('sqlite://', '')
     """
     Initialize SQLite database with required tables
     初始化SQLite数据库并创建所需表
@@ -127,8 +129,10 @@ def init_database(db_path=None):
         ''')
 
         # 创建默认管理员账户
-        admin_username = ADMIN_USERNAME
-        admin_password = ADMIN_PASSWORD  # 默认密码，首次登录后应修改
+        admin_username = os.getenv('ADMIN_USERNAME')
+        admin_password = os.getenv('ADMIN_PASSWORD')
+        if not admin_username or not admin_password:
+            raise ValueError('ADMIN_USERNAME and ADMIN_PASSWORD must be configured in .env file')
         password_hash = hashlib.sha256(admin_password.encode('utf-8')).hexdigest()
         
         # 创建默认管理员账户

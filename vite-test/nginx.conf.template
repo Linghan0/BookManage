@@ -1,0 +1,44 @@
+# Nginx配置模板
+# 请将以下占位符替换为实际值
+
+server {
+    listen 80;
+    server_name YOUR_SERVER_IP_OR_DOMAIN;  # 替换为实际服务器IP或域名
+    index index.html index.htm default.htm default.html;
+    root /path/to/your/dist;  # 替换为前端dist目录实际路径
+
+    # 前端静态文件服务
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API代理配置
+    location /api {
+        proxy_pass http://BACKEND_HOST:PORT;  # 替换为后端服务地址和端口
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        
+        # WebSocket支持
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # 静态资源缓存
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, no-transform";
+        access_log off;
+    }
+
+    # 安全配置
+    location ~ ^/(\.user.ini|\.htaccess|\.git|\.env|\.svn|\.project|LICENSE|README.md) {
+        return 404;
+    }
+
+    # SSL证书验证
+    location ~ \.well-known{
+        allow all;
+    }
+}

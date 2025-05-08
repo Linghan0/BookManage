@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 # back/db/db.py
 
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base
-from config import DB_PATH
 
 def get_engine():
     """获取数据库引擎"""
-    # 将Path对象转换为字符串，并确保使用正斜杠
-    db_path_str = str(DB_PATH).replace('\\', '/')
+    # 从环境变量获取数据库URL，必须配置
+    db_url = os.getenv('DATABASE_URL')
+    if not db_url:
+        raise ValueError('DATABASE_URL must be configured in .env file')
     return create_engine(
-        f'sqlite:///{db_path_str}',
-        echo=True,
-        connect_args={'check_same_thread': False},
-        isolation_level='SERIALIZABLE'
+        db_url,
+        echo=os.getenv('DB_ECHO', 'false').lower() == 'true',
+        connect_args={'check_same_thread': os.getenv('DB_CHECK_SAME_THREAD', 'false').lower() == 'true'},
+        isolation_level=os.getenv('DB_ISOLATION_LEVEL', 'SERIALIZABLE')
     )
 
 def init_db():

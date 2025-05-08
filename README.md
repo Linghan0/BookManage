@@ -41,7 +41,6 @@
 BookManage/
 ├── back/                  # 后端代码
 │   ├── app.py             # Flask主应用
-│   ├── config.py          # 配置文件
 │   ├── models.py          # 数据模型
 │   ├── db/                # 数据库相关
 │   │   ├── init_db.py     # 数据库初始化
@@ -57,6 +56,27 @@ BookManage/
     │   └── components/    # 公共组件
     └── vite.config.ts     # Vite配置
 ```
+
+## 配置说明
+
+项目使用以下配置方式：
+
+1. **.env文件** - 用于业务配置：
+   - 后端配置: back/.env.production
+     - 包含数据库连接、服务器设置、管理员凭证等
+     - 重要配置项:
+       - DATABASE_URL: 数据库连接URL
+       - SECRET_KEY: JWT加密密钥
+       - ADMIN_USERNAME/PASSWORD: 管理员凭证
+
+   - 前端配置: vite-test/.env.production
+     - 包含API基础URL等
+     - 重要配置项:
+       - VITE_API_BASE_URL: 后端API基础地址
+
+2. **config.ini文件** - 仅用于记录应用状态：
+   - back/config.ini
+   - 仅包含初始化状态标记
 
 ## 快速开始
 
