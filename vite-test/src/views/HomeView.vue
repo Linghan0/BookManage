@@ -55,7 +55,7 @@
         <el-button type="success" size="large" @click="$router.push('/login')">
           用户登录
         </el-button>
-        <el-button type="info" size="large" @click="$router.push('/userbooks')">
+        <el-button type="info" size="large" @click="$router.push('/bookshelf')">
           管理书架
         </el-button>
       </div>
@@ -213,5 +213,18 @@ onMounted(() => {
 
 .action-buttons .el-button {
   min-width: 150px;
+}
+
+@media (max-width: 768px) {
+  .action-buttons {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .action-buttons .el-button {
+    width: 100%;
+    max-width: 250px;
+  }
 }
 </style>

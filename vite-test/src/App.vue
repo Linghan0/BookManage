@@ -3,23 +3,35 @@ import NavBar from './components/NavBar.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 
 const bgImageUrl = ref('')
+const defaultBgImages = {
+  pc: new URL('./assets/default-bg-pc.jpg', import.meta.url).href,
+  mp: new URL('./assets/default-bg-mp.jpg', import.meta.url).href
+}
+let debounceTimer: number | null = null
 
 function getImageSortParam() {
   const aspectRatio = window.innerWidth / window.innerHeight
   return aspectRatio > 1.33 ? 'pc' : 'mp'
 }
 
+// 更新背景图片
 async function updateBackground() {
+  const sortParam = getImageSortParam()
+  const appContainer = document.querySelector('.app-container') as HTMLElement
+  
   try {
-    const sortParam = getImageSortParam()
+    // 先设置默认背景
+    const defaultBg = defaultBgImages[sortParam]
+    appContainer.style.backgroundImage = `url("${defaultBg}")`
+    
+    // 尝试获取动态背景
     const response = await fetch(`/api/img/image/${sortParam}`)
-    if (!response.ok) throw new Error('Failed to fetch background image')
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
     
     const blob = await response.blob()
     const url = URL.createObjectURL(blob)
     bgImageUrl.value = url
     
-    const appContainer = document.querySelector('.app-container') as HTMLElement
     if (appContainer) {
       // 释放之前的Blob URL
       const oldBg = appContainer.style.backgroundImage
@@ -30,21 +42,35 @@ async function updateBackground() {
     }
   } catch (error) {
     console.error('Background image error:', error)
-    // 回退到默认背景
-    const appContainer = document.querySelector('.app-container') as HTMLElement
+    // 确保使用默认背景
     if (appContainer) {
-      appContainer.style.backgroundImage = 'var(--fallback-bg)'
+      appContainer.style.backgroundImage = `url("${defaultBgImages[sortParam]}")`
     }
   }
 }
 
+// 防抖函数
+function debouncedUpdateBackground() {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+  }
+  debounceTimer = window.setTimeout(() => {
+    updateBackground()
+    debounceTimer = null
+  }, 1000)
+}
+
+
 onMounted(() => {
   updateBackground()
-  window.addEventListener('resize', updateBackground)
+  window.addEventListener('resize', debouncedUpdateBackground)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', updateBackground)
+  window.removeEventListener('resize', debouncedUpdateBackground)
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+  }
 })
 </script>
 
@@ -76,38 +102,65 @@ onUnmounted(() => {
   transition: background-image 0.5s ease;
   margin: 0;
   padding: 0;
+  overflow: auto;
 }
 
 .app-container::before {
   content: '';
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background-color: rgba(255, 255, 255, 0);
   z-index: 0;
+  pointer-events: none;
 }
 
 .common-layout {
   position: relative;
   z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .el-container {
   padding: 0;
   margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .el-header {
   padding: 0;
   margin: 0;
   width: 100%;
+  flex-shrink: 0;
+}
+
+.el-main {
+  flex: 1;
+  overflow: auto;
 }
 
 .common-layout {
   width: 100%;
   margin: 0;
   padding: 0;
+  min-height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    position: absolute;
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  .el-main {
+    padding: 10px;
+  }
 }
 </style>
