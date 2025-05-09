@@ -9,6 +9,18 @@
     </div>
 
     <div class="scanner-container">
+      <el-alert 
+        title="摄像头使用提示" 
+        type="warning" 
+        show-icon
+        :closable="false"
+        class="camera-notice">
+        <p>1. 非HTTPS环境下浏览器默认禁止使用摄像头</p>
+        <p>2. Edge浏览器解禁方法：</p>
+        <p>&nbsp;&nbsp;- 访问 edge://flags/</p>
+        <p>&nbsp;&nbsp;- 找到"Insecure origins treated as secure"选项</p>
+        <p>&nbsp;&nbsp;- 设为启用并添加网站IP到白名单</p>
+      </el-alert>
       <div id="scanner"></div>
       <el-button type="primary" @click="startScanner" :disabled="isScanning">
         开始扫描

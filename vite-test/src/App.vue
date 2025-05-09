@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import NavBar from './components/NavBar.vue'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 
-const bgImageUrl = ref('')
+// import { ref, onMounted, onUnmounted } from 'vue'
+// const bgImageUrl = ref('')
 const defaultBgImages = {
   pc: new URL('./assets/default-bg-pc.jpg', import.meta.url).href,
   mp: new URL('./assets/default-bg-mp.jpg', import.meta.url).href
@@ -24,22 +25,22 @@ async function updateBackground() {
     const defaultBg = defaultBgImages[sortParam]
     appContainer.style.backgroundImage = `url("${defaultBg}")`
     
-    // 尝试获取动态背景
-    const response = await fetch(`/api/img/image/${sortParam}`)
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    // // 尝试获取动态背景
+    // const response = await fetch(`/api/img/image/${sortParam}`)
+    // if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
     
-    const blob = await response.blob()
-    const url = URL.createObjectURL(blob)
-    bgImageUrl.value = url
+    // const blob = await response.blob()
+    // const url = URL.createObjectURL(blob)
+    // bgImageUrl.value = url
     
-    if (appContainer) {
-      // 释放之前的Blob URL
-      const oldBg = appContainer.style.backgroundImage
-      if (oldBg && oldBg.startsWith('url("blob:')) {
-        URL.revokeObjectURL(oldBg.slice(5, -2))
-      }
-      appContainer.style.backgroundImage = `url("${url}")`
-    }
+    // if (appContainer) {
+    //   // 释放之前的Blob URL
+    //   const oldBg = appContainer.style.backgroundImage
+    //   if (oldBg && oldBg.startsWith('url("blob:')) {
+    //     URL.revokeObjectURL(oldBg.slice(5, -2))
+    //   }
+    //   appContainer.style.backgroundImage = `url("${url}")`
+    // }
   } catch (error) {
     console.error('Background image error:', error)
     // 确保使用默认背景
