@@ -5,7 +5,12 @@ import router from '@/router'
 
 const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: 10000
+  timeout: 10000,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }
 })
 
 // 请求拦截器 - 添加token

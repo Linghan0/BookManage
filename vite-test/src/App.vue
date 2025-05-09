@@ -9,13 +9,32 @@ function getImageSortParam() {
   return aspectRatio > 1.33 ? 'pc' : 'mp'
 }
 
-function updateBackground() {
-  const sortParam = getImageSortParam()
-  const url = `https://iw233.cn/api.php?sort=${sortParam}`
-  bgImageUrl.value = url
-  const appContainer = document.querySelector('.app-container') as HTMLElement
-  if (appContainer) {
-    appContainer.style.backgroundImage = `url(${url})`
+async function updateBackground() {
+  try {
+    const sortParam = getImageSortParam()
+    const response = await fetch(`/api/img/image/${sortParam}`)
+    if (!response.ok) throw new Error('Failed to fetch background image')
+    
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    bgImageUrl.value = url
+    
+    const appContainer = document.querySelector('.app-container') as HTMLElement
+    if (appContainer) {
+      // 释放之前的Blob URL
+      const oldBg = appContainer.style.backgroundImage
+      if (oldBg && oldBg.startsWith('url("blob:')) {
+        URL.revokeObjectURL(oldBg.slice(5, -2))
+      }
+      appContainer.style.backgroundImage = `url("${url}")`
+    }
+  } catch (error) {
+    console.error('Background image error:', error)
+    // 回退到默认背景
+    const appContainer = document.querySelector('.app-container') as HTMLElement
+    if (appContainer) {
+      appContainer.style.backgroundImage = 'var(--fallback-bg)'
+    }
   }
 }
 
@@ -30,7 +49,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="app-container">
+  <div class="app-container" referrerPolicy="no-referrer">
     <div class="common-layout">
       <el-container>
         <el-header>

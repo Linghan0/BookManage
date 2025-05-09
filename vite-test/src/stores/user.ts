@@ -2,8 +2,6 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import axios from 'axios'
 
-// 明确设置baseURL
-axios.defaults.baseURL = 'http://localhost:5000'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 // 类型守卫函数
@@ -42,13 +40,22 @@ export const useUserStore = defineStore('user', () => {
   })
 
   const sha256 = async (message: string): Promise<string> => {
-    // 将字符串编码为UTF-8
-    const msgBuffer = new TextEncoder().encode(message)
-    // 使用Web Crypto API计算哈希
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
-    // 将ArrayBuffer转换为Hex字符串
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    try {
+      // 首选方案：使用Web Crypto API
+      if (window.crypto?.subtle) {
+        const msgBuffer = new TextEncoder().encode(message)
+        const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer)
+        const hashArray = Array.from(new Uint8Array(hashBuffer))
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+      }
+      // 备用方案：使用js-sha256库
+      const { sha256 } = await import('js-sha256')
+      return sha256(message)
+      
+    } catch (error) {
+      console.error('加密失败:', error)
+      throw new Error('密码加密处理失败')
+    }
   }
 
   const init = async () => {

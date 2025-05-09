@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from io import BytesIO
+import json
 import sys
 from pathlib import Path
 import jwt 
@@ -9,10 +11,11 @@ import configparser
 from pathlib import Path
 from flask import Flask, jsonify, request, Response, send_file, send_from_directory
 from flask_cors import CORS
+import requests
 from werkzeug.utils import secure_filename
 import os
 from dotenv import load_dotenv
-
+from tools.wb_header import get_wb_headers
 
 # 加载环境变量
 load_dotenv('.env.production')
@@ -61,7 +64,7 @@ else:
 # 检查是否需要初始化
 if config.getboolean('INIT', 'initialized', fallback=False) == False:
     print("首次启动，正在初始化数据库...")
-    db_path = os.getenv('DATABASE_URL', 'sqlite://db/book_manage.db').replace('sqlite://', '')
+    db_path = os.path.expandvars(os.getenv('DATABASE_URL', 'sqlite:///${BASE_DIR}/back/db/book_manage.db'))
     if not init_database(db_path):
         print("数据库初始化失败!")
         exit(1)
@@ -610,9 +613,9 @@ def upload_image(current_user):
         file.save(filepath)
         return jsonify({'url': f'/api/img/cover/{filename}'}), 201
 
-# 图片访问API
+# 封面图片访问API
 @app.route('/api/img/cover/<filename>')
-def get_image(filename):
+def get_image_cover(filename):
     """获取图片"""
     try:
         # 构建文件路径
@@ -632,5 +635,50 @@ def get_image(filename):
         # 如果默认封面也不存在，返回404
         return jsonify({'error': 'Default cover not found'}), 404
 
+
+# 代理图片api
+@app.route('/api/img/image/<sort>', methods=['GET'])
+def get_image(sort):
+    """获取图片"""
+    try:
+        # 获取图片URL
+        url = f'https://iw233.cn/api.php?sort={sort}&type=json'
+        response = requests.get(url)
+        response.raise_for_status()
+        
+        data = response.json()
+        img_url = data['pic'][0]
+        # 拆分图片名
+        # img_name = img_url.split('/')[-1]
+        # 下载图片
+        headers = get_wb_headers()
+        img_response = requests.get(img_url, headers=headers, stream=True)
+        img_response.raise_for_status()
+        
+        # 使用内存中的文件对象
+        img_data = BytesIO()
+        for chunk in img_response.iter_content(1024):
+            img_data.write(chunk)
+        img_data.seek(0)
+        
+        # 获取内容类型
+        content_type = img_response.headers.get('Content-Type', 'image/jpeg')
+        
+        return send_file(img_data, mimetype=content_type)
+
+    except requests.RequestException as e:
+        app.logger.error(f'图片代理请求失败: {str(e)}')
+        return jsonify({'error': f'Failed to fetch image: {str(e)}'}), 500
+    except KeyError as e:
+        app.logger.error(f'JSON数据缺少必要字段: {str(e)}')
+        return jsonify({'error': 'Invalid image data received'}), 500
+    except Exception as e:
+        app.logger.error(f'图片代理未知错误: {str(e)}')
+        return jsonify({'error': 'Internal server error'}), 500
+        
+
+
 if __name__ == '__main__':
     app.run(debug=True)
+    sort = 'pc'
+    get_image(sort)

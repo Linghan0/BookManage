@@ -10,12 +10,10 @@ from db.book_tools import create_book_isbn
 
 def init_database(db_path=None):
     """初始化数据库"""
-    # 如果没有传入路径，从环境变量获取
-    if db_path is None:
-        db_url = os.getenv('DATABASE_URL')
-        if not db_url:
-            raise ValueError('DATABASE_URL must be configured in .env file')
-        db_path = db_url.replace('sqlite://', '')
+    # 如果没有传入路径，从环境变量获取完整路径
+    # 创建有问题，临时应用绝对路径
+    db_path = '/www/wwwroot/BookManage/back/db/book_manage.db'
+
     """
     Initialize SQLite database with required tables
     初始化SQLite数据库并创建所需表
@@ -28,6 +26,7 @@ def init_database(db_path=None):
         
         # 检查数据库文件是否已存在
         db_exists = db_path_obj.exists()
+        print("存在性检查：{db_exists}")
         
         print("正在创建数据库目录...")
         # Create database directory if not exists/如果目录不存在则创建
@@ -169,12 +168,11 @@ def init_database(db_path=None):
                 ''', (admin_username, password_hash, 'admin'))
                 print(f"已创建User表并添加管理员账户: {admin_username}")
 
-        # 创建初始书籍
-
+        conn.commit()
         
+        # 创建初始书籍
         test_isbn = "978-7-5658-0227-0"  # 测试书籍ISBN
         print(f"正在创建初始书籍，ISBN: {test_isbn}")
-        
         result = create_book_isbn(test_isbn)
         if result['success']:
             print(f"初始书籍创建成功: {result['book']['title']}")
@@ -182,8 +180,7 @@ def init_database(db_path=None):
             print(f"初始书籍创建失败: {result['message']}")
             if "书籍已存在" in result['message']:
                 print("书籍已存在，跳过创建")
-        
-        conn.commit()
+
         print(f"Database initialized successfully at {db_path}")
         print(f"数据库已成功初始化，路径: {db_path}")
         return True

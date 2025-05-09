@@ -41,12 +41,25 @@ export class IndexedDBHelper {
         return
       }
 
+      console.debug('Storing data to IndexedDB:', data)
+      if (!data.isbn) {
+        console.error('Data missing required isbn field:', data)
+        reject(new Error('Data missing required isbn field'))
+        return
+      }
+
       const transaction = this.db.transaction(this.storeName, 'readwrite')
       const store = transaction.objectStore(this.storeName)
       const request = store.put(data)
 
-      request.onsuccess = () => resolve()
-      request.onerror = (event) => reject((event.target as IDBRequest).error)
+      request.onsuccess = () => {
+        console.debug('Data stored successfully')
+        resolve()
+      }
+      request.onerror = (event) => {
+        console.error('Error storing data:', (event.target as IDBRequest).error)
+        reject((event.target as IDBRequest).error)
+      }
     })
   }
 

@@ -111,9 +111,14 @@ export const useBookStore = defineStore('books', () => {
 
       // 缓存中没有则从API获取
       const response = await axios.get(`/api/books/${isbn}`)
+      // 从响应中提取book对象
+      const bookData = response.data?.book
+      if (!bookData) {
+        throw new Error('Invalid API response: missing book data')
+      }
       // 添加到缓存
-      await dbHelper.put(response.data)
-      return response.data
+      await dbHelper.put(bookData)
+      return bookData
     } catch (error) {
       ElMessage.error('获取书籍信息失败')
       throw error
