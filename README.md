@@ -57,7 +57,7 @@ back/
 │   └── user_tools.py   # 用户操作
 └── tools/              # 辅助工具
 
-vite-test/
+vite_front/
 ├── src/
 │   ├── views/          # 页面组件
 │   │   ├── HomeView.vue       # 首页
@@ -109,7 +109,7 @@ npm run dev
 gunicorn -c gunicorn_conf.py app:app
 
 # 构建前端
-cd vite-test
+cd vite_front
 npm run build
 ```
 
@@ -124,7 +124,7 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
 ```
 
-- 生产环境: `.env.production`文件,模板为准
+- 生产环境: `.env.production`文件,以模板为准
 ```ini
 ## 当前数据库配置无效，写死为www/wwwroot/BookManage/db/bookmanage.db
 DATABASE_URL=mysql://user:password@localhost/bookmanage
