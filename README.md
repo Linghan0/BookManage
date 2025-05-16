@@ -1,6 +1,8 @@
 # BookManage - 图书管理系统
 
 基于Flask+Vue的个人图书管理系统（毕业设计项目）
+// 于2025.5.10 完成答辩，后续应该不会再继续开发了
+// 未解决使用微博背景图Referer修改相关问题
 
 ## 项目背景
 - 为个人图书收藏管理提供数字化解决方案
@@ -10,11 +12,11 @@
 ## 技术栈
 
 ### 后端
-- Python 3.10+
-- Flask 2.3.2
-- SQLAlchemy 2.0
+- Python 3.13.2
+- Flask 3.1.0
+- SQLAlchemy 2.0.40
 - JWT认证
-- Gunicorn/UWSGI(生产环境)
+- Gunicorn(生产环境)
 
 ### 前端
 - Vue 3.3
@@ -24,7 +26,6 @@
 - Axios 1.4
 
 ## 系统架构
-![系统架构图](docs/architecture.png)
 
 采用前后端分离架构：
 - 前端: Vue3 + Vite构建
@@ -42,7 +43,7 @@
 ### 管理员功能
 - 用户管理
 - 系统配置
-- 数据统计
+- 数据统计×
 
 ## 项目结构
 
@@ -126,7 +127,7 @@ ADMIN_PASSWORD=admin123
 
 - 生产环境: `.env.production`文件,以模板为准
 ```ini
-## 当前数据库配置无效，写死为www/wwwroot/BookManage/db/bookmanage.db
+## 当前数据库配置使用有问题，初始化文件写死为www/wwwroot/BookManage/db/bookmanage.db
 DATABASE_URL=mysql://user:password@localhost/bookmanage
 SECRET_KEY=production-secret-key
 ADMIN_USERNAME=admin
